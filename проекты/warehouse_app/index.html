@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Warehouse Inventory Analyzer</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg:       #0a0e1a;
+    --surface:  #111827;
+    --surface2: #1a2235;
+    --border:   #1e2d45;
+    --accent:   #00d4ff;
+    --accent2:  #7c3aed;
+    --green:    #10b981;
+    --orange:   #f59e0b;
+    --red:      #ef4444;
+    --text:     #e2e8f0;
+    --muted:    #64748b;
+    --mono:     'IBM Plex Mono', monospace;
+    --sans:     'IBM Plex Sans', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: var(--sans); min-height: 100vh; overflow-x: hidden;
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px; pointer-events: none; z-index: 0;
+  }
+  .wrap { position: relative; z-index: 1; max-width: 1400px; margin: 0 auto; padding: 40px 24px; }
+
+  header { margin-bottom: 48px; }
+  .logo { font-family: var(--mono); font-size: 11px; letter-spacing: 0.2em; color: var(--accent); text-transform: uppercase; margin-bottom: 12px; }
+  h1 { font-size: clamp(28px,4vw,48px); font-weight: 600; line-height: 1.1; background: linear-gradient(135deg,#fff 40%,var(--accent)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+  .subtitle { color: var(--muted); margin-top: 8px; font-size: 14px; }
+
+  .upload-zone {
+    border: 2px dashed var(--border); border-radius: 16px; padding: 60px 40px;
+    text-align: center; cursor: pointer; transition: all 0.3s;
+    background: var(--surface); position: relative; overflow: hidden;
+  }
+  .upload-zone::before { content:''; position:absolute; inset:0; background:radial-gradient(ellipse at 50% 0%,rgba(0,212,255,0.08),transparent 70%); pointer-events:none; }
+  .upload-zone:hover, .upload-zone.drag { border-color: var(--accent); background: var(--surface2); }
+  .upload-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.6; }
+  .upload-title { font-size: 20px; font-weight: 500; margin-bottom: 8px; }
+  .upload-sub { color: var(--muted); font-size: 13px; }
+  .upload-sub span { color: var(--accent); }
+  #fileInput { display: none; }
+
+  .progress-wrap { display: none; margin-top: 32px; }
+  .progress-bar { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg,var(--accent),var(--accent2)); width: 0%; transition: width 0.4s; }
+  .progress-label { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 8px; }
+
+  #results { display: none; margin-top: 48px; }
+
+  .meta-bar {
+    display: flex; align-items: center; gap: 16px; margin-bottom: 24px;
+    padding: 12px 16px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; font-family: var(--mono); font-size: 11px; color: var(--muted);
+    flex-wrap: wrap;
+  }
+  .meta-bar .tag { background: var(--surface2); padding: 4px 10px; border-radius: 20px; }
+  .meta-bar .tag span { color: var(--accent); }
+
+  .summary-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(200px,1fr)); gap: 16px; margin-bottom: 40px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; position: relative; overflow: hidden; transition: transform 0.2s; }
+  .card:hover { transform: translateY(-2px); }
+  .card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; }
+  .card.total::before  { background: var(--accent); }
+  .card.transit::before{ background: var(--orange); }
+  .card.upgrade::before{ background: var(--accent2); }
+  .card.shipped::before{ background: var(--green); }
+  .card-label { font-family:var(--mono); font-size:10px; letter-spacing:0.15em; color:var(--muted); text-transform:uppercase; margin-bottom:12px; }
+  .card-value { font-family:var(--mono); font-size:36px; font-weight:600; line-height:1; }
+  .card.total .card-value  { color: var(--accent); }
+  .card.transit .card-value{ color: var(--orange); }
+  .card.upgrade .card-value{ color: var(--accent2); }
+  .card.shipped .card-value{ color: var(--green); }
+
+  .tabs { display:flex; gap:8px; margin-bottom:32px; flex-wrap:wrap; }
+  .tab { font-family:var(--mono); font-size:11px; letter-spacing:0.1em; text-transform:uppercase; padding:8px 16px; border-radius:6px; border:1px solid var(--border); background:transparent; color:var(--muted); cursor:pointer; transition:all 0.2s; }
+  .tab:hover { color:var(--text); border-color:var(--accent); }
+  .tab.active { background:var(--accent); color:#000; border-color:var(--accent); font-weight:600; }
+
+  .section { margin-bottom: 40px; }
+  .section-header { display:flex; align-items:center; gap:12px; margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid var(--border); }
+  .section-icon { font-size: 20px; }
+  .section-title { font-size: 16px; font-weight: 600; }
+  .section-count { font-family:var(--mono); font-size:11px; color:var(--muted); background:var(--surface2); padding:3px 8px; border-radius:20px; }
+
+  .tbl-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead { background: var(--surface2); }
+  th { font-family:var(--mono); font-size:10px; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); padding:12px 16px; text-align:right; white-space:nowrap; }
+  th:first-child { text-align: left; }
+  td { padding:10px 16px; border-top:1px solid var(--border); text-align:right; }
+  td:first-child { text-align:left; font-weight:500; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  .num { font-family:var(--mono); font-size:13px; }
+  .num.zero    { color: var(--muted); }
+  .num.transit { color: var(--orange); }
+  .num.upgrade { color: var(--accent2); }
+  .num.shipped { color: var(--green); }
+  .num.total   { color: var(--text); }
+  .sub-row td  { background:var(--surface2); font-weight:600; border-top:2px solid var(--border); font-family:var(--mono); font-size:12px; }
+
+  .note { background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.3); border-radius:8px; padding:12px 16px; font-size:12px; color:var(--orange); margin-top:12px; }
+  .btn-reset { font-family:var(--mono); font-size:11px; letter-spacing:0.1em; text-transform:uppercase; padding:10px 20px; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--muted); cursor:pointer; transition:all 0.2s; margin-bottom:32px; }
+  .btn-reset:hover { color:var(--accent); border-color:var(--accent); }
+  .fade-in { animation: fadeIn 0.4s ease forwards; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+  .stock-controls { display:flex; align-items:center; gap:16px; margin-bottom:24px; flex-wrap:wrap; }
+  .ctrl-group { display:flex; align-items:center; gap:8px; }
+  .ctrl-group label { font-family:var(--mono); font-size:10px; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); }
+  .ctrl-btn { font-family:var(--mono); font-size:10px; letter-spacing:0.08em; text-transform:uppercase; padding:6px 14px; border-radius:6px; border:1px solid var(--border); background:transparent; color:var(--muted); cursor:pointer; transition:all 0.2s; }
+  .ctrl-btn:hover { color:var(--text); border-color:var(--accent); }
+  .ctrl-btn.active { background:var(--surface2); color:var(--accent); border-color:var(--accent); }
+  .export-full-btn {
+    display: block; width: 100%; padding: 14px;
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.15em; text-transform: uppercase;
+    background: linear-gradient(135deg, rgba(0,212,255,0.1), rgba(124,58,237,0.1));
+    border: 1px solid var(--accent); border-radius: 10px; color: var(--accent);
+    cursor: pointer; transition: all 0.3s; margin-bottom: 24px;
+  }
+  .export-full-btn:hover { background: linear-gradient(135deg, rgba(0,212,255,0.2), rgba(124,58,237,0.2)); box-shadow: 0 0 20px rgba(0,212,255,0.2); }
+    font-family:var(--mono); font-size:11px; letter-spacing:0.1em; text-transform:uppercase;
+    padding:8px 18px; border-radius:6px; border:1px solid var(--green);
+    background:rgba(16,185,129,0.1); color:var(--green); cursor:pointer; transition:all 0.2s;
+    margin-left: auto;
+  }
+  .export-btn:hover { background:rgba(16,185,129,0.2); box-shadow: 0 0 12px rgba(16,185,129,0.3); }
+  .grade-A  { color:#10b981; font-weight:600; }
+  .grade-B\+ { color:#60a5fa; }
+  .grade-B  { color:#818cf8; }
+  .grade-C  { color:var(--muted); }
+  .auction-tag { display:inline-block; font-size:10px; padding:2px 7px; border-radius:10px; margin-left:6px; font-family:var(--mono); }
+  .auction-ATT { background:rgba(239,68,68,0.15); color:#f87171; }
+  .auction-TMobile { background:rgba(236,72,153,0.15); color:#f472b6; }
+  .auction-BELL { background:rgba(245,158,11,0.15); color:#fbbf24; }
+  .auction-Poland { background:rgba(16,185,129,0.15); color:#34d399; }
+  .auction-other { background:rgba(100,116,139,0.15); color:var(--muted); }
+  .col-grade { min-width:60px; }
+  .col-auction { min-width:90px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">▸ Unitrade // Inventory System</div>
+    <h1>Warehouse<br>Analyzer</h1>
+    <p class="subtitle">Завантажте Excel файл — статуси читаються автоматично з листа Batches</p>
+  </header>
+
+  <div class="upload-zone" id="uploadZone">
+    <input type="file" id="fileInput" accept=".xlsx,.xls">
+    <div class="upload-icon">📂</div>
+    <div class="upload-title">Перетягніть файл або натисніть</div>
+    <div class="upload-sub">Підтримується <span>Comfy-Unitrade.xlsx</span> та оновлені версії</div>
+    <div class="progress-wrap" id="progressWrap">
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-label" id="progressLabel">Завантаження...</div>
+    </div>
+  </div>
+
+  <div id="results">
+    <button class="btn-reset" onclick="resetApp()">↑ Завантажити інший файл</button>
+
+    <div class="meta-bar" id="metaBar"></div>
+    <button class="export-full-btn" onclick="exportFullReport()">⬇ Скачати повний звіт XLSX</button>
+    <button class="export-full-btn" style="background:rgba(255,100,100,0.1);border-color:#f87171;color:#f87171;margin-top:4px" onclick="testDownload()">🧪 Тест скачування</button>
+
+    <div class="tabs">
+      <button class="tab active" onclick="showTab('phones')">📱 Телефони</button>
+      <button class="tab" onclick="showTab('stock')">🏷️ Залишки</button>
+      <button class="tab" onclick="showTab('airpods')">🎧 AirPods</button>
+      <button class="tab" onclick="showTab('macbook')">💻 MacBook</button>
+      <button class="tab" onclick="showTab('ipad')">📱 iPad</button>
+      <button class="tab" onclick="showTab('dell')">🖥️ Dell</button>
+      <button class="tab" onclick="showTab('watch')">⌚ Watch</button>
+    </div>
+
+    <div id="tab-phones">
+      <div class="summary-grid" id="phoneSummary"></div>
+      <div class="section">
+        <div class="section-header"><span class="section-icon">🍎</span><span class="section-title">Apple iPhone</span><span class="section-count" id="iphoneCount"></span></div>
+        <div class="tbl-wrap"><table id="iphoneTable"></table></div>
+      </div>
+      <div class="section">
+        <div class="section-header"><span class="section-icon">🤖</span><span class="section-title">Google Pixel</span><span class="section-count" id="pixelCount"></span></div>
+        <div class="tbl-wrap"><table id="pixelTable"></table></div>
+      </div>
+    </div>
+
+    <div id="tab-stock" style="display:none">
+      <div class="summary-grid" id="stockSummary"></div>
+
+      <div class="stock-controls">
+        <div class="ctrl-group">
+          <label>Групувати по:</label>
+          <button class="ctrl-btn active" onclick="setGroupBy('grade')">По Грейду</button>
+          <button class="ctrl-btn" onclick="setGroupBy('auction')">По Аукціону</button>
+          <button class="ctrl-btn" onclick="setGroupBy('both')">Грейд + Аукціон</button>
+        </div>
+        <button class="export-btn" onclick="exportStockXLSX()">⬇ Скачати XLSX</button>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <span class="section-icon">🍎</span>
+          <span class="section-title">Apple iPhone — залишки</span>
+          <span class="section-count" id="stockIphoneCount"></span>
+        </div>
+        <div class="tbl-wrap"><table id="stockIphoneTable"></table></div>
+      </div>
+      <div class="section">
+        <div class="section-header">
+          <span class="section-icon">🤖</span>
+          <span class="section-title">Google Pixel — залишки</span>
+          <span class="section-count" id="stockPixelCount"></span>
+        </div>
+        <div class="tbl-wrap"><table id="stockPixelTable"></table></div>
+      </div>
+    </div>
+
+    <div id="tab-airpods" style="display:none">
+      <div class="summary-grid" id="apSummary"></div>
+      <div class="section">
+        <div class="section-header"><span class="section-icon">🎧</span><span class="section-title">AirPods</span></div>
+        <div class="tbl-wrap"><table id="apTable"></table></div>
+      </div>
+    </div>
+
+    <div id="tab-macbook" style="display:none">
+      <div class="summary-grid" id="mbSummary"></div>
+      <div class="section">
+        <div class="section-header"><span class="section-icon">💻</span><span class="section-title">MacBook</span></div>
+        <div class="tbl-wrap"><table id="mbTable"></table></div>
+      </div>
+    </div>
+
+    <div id="tab-ipad" style="display:none">
+      <div class="summary-grid" id="ipadSummary"></div>
+      <div class="section">
+        <div class="section-header"><span class="section-icon">📱</span><span class="section-title">iPad</span></div>
+        <div class="tbl-wrap"><table id="ipadTable"></table></div>
+      </div>
+    </div>
+
+    <div id="tab-dell" style="display:none">
+      <div class="summary-grid" id="dellSummary"></div>
+      <div class="section">
+        <div class="section-header"><span class="section-icon">🖥️</span><span class="section-title">Dell</span></div>
+        <div class="tbl-wrap"><table id="dellTable"></table></div>
+      </div>
+    </div>
+
+    <div id="tab-watch" style="display:none">
+      <div class="summary-grid" id="watchSummary"></div>
+      <div class="section">
+        <div class="section-header"><span class="section-icon">⌚</span><span class="section-title">Watch</span></div>
+        <div class="note">⚠ Watch не має S/N — колонка "Shipped to Comfy" недоступна</div>
+        <div class="tbl-wrap" style="margin-top:12px"><table id="watchTable"></table></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const COLORS = ['Space Black','Space Gray','Space Blue','Silver','Midnight','Starlight','Gold','Sky Blue','Stardust Rose'];
+
+// ── Upload ──────────────────────────────────────────────────
+const zone = document.getElementById('uploadZone');
+const fileInput = document.getElementById('fileInput');
+zone.addEventListener('click', () => fileInput.click());
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('drag'); processFile(e.dataTransfer.files[0]); });
+fileInput.addEventListener('change', e => processFile(e.target.files[0]));
+
+function setProgress(pct, label) {
+  document.getElementById('progressWrap').style.display = 'block';
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressLabel').textContent = label;
+}
+function resetApp() {
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('progressWrap').style.display = 'none';
+  document.getElementById('progressFill').style.width = '0%';
+  fileInput.value = '';
+  showTab('phones');
+}
+
+// ── Global state ────────────────────────────────────────────
+let _stockIphone = [], _stockPixel = [], _groupBy = 'grade';
+let _phoneSumm = {}, _apSumm = {}, _macSumm = {}, _ipadSumm = {}, _dellSumm = {}, _wSumm = {};
+
+async function processFile(file) {
+  if (!file) return;
+  setProgress(10, 'Читаємо файл...');
+  const buf = await file.arrayBuffer();
+  setProgress(25, 'Парсимо Excel...');
+  const wb = XLSX.read(buf, { type: 'array' });
+  setProgress(45, 'Читаємо Batches...');
+  await tick();
+
+  const get = name => {
+    const s = wb.SheetNames.find(s => s.trim() === name.trim());
+    return s ? XLSX.utils.sheet_to_json(wb.Sheets[s], { header:1, defval:null }) : [];
+  };
+
+  // Lot status from Batches
+  const rawBatches = get('Batches');
+  let bHdr = rawBatches.findIndex(r => r[0] === 'Status');
+  if (bHdr < 0) bHdr = 2;
+  const lotStatus = {};
+  rawBatches.slice(bHdr + 1).forEach(r => {
+    if (r[0] && r[2]) lotStatus[String(r[2]).trim()] = String(r[0]).trim();
+  });
+
+  setProgress(60, 'Читаємо відгрузки...');
+  await tick();
+
+  // Normalize IMEI/SN — strip trailing .0
+  const normID = v => v == null ? null : String(v).trim().replace(/\.0+$/, '');
+  const rawSh = get('Отгрузки_рабочий');
+  const shipSet = new Set(rawSh.slice(1).map(r => r[6]).filter(v => v != null).map(normID));
+
+  setProgress(75, 'Аналізуємо...');
+  await tick();
+
+  // Phones
+  const raw1 = get('DB | IMEI'), raw2 = get('DB | IMEI 2026');
+  const phoneRows = [...raw1.slice(2), ...raw2.slice(2)].filter(r => r[3]);
+  phoneRows.forEach(r => {
+    r._model   = normPhone(String(r[3]||'').trim());
+    r._storage = normStorage(String(r[5]||'').trim());
+    r._imei    = r[6] != null ? normID(r[6]) : null;
+    r._inv     = String(r[0]||'').trim();
+    r._grade   = normGrade(String(r[9]||'').trim());
+    r._auction = String(r[1]||'').trim();
+    r._shipped = r._imei ? shipSet.has(r._imei) : false;
+    r._transit = (lotStatus[r._inv] === 'Delivery in USA') && !r._shipped;
+    r._upgrade = !r._transit && !r._shipped;
+  });
+
+  // AirPods
+  const rawAp = get('DB | Airpods');
+  const apRows = rawAp.slice(3).filter(r => r[2]);
+  apRows.forEach(r => {
+    r._model   = String(r[2]||'').trim();
+    r._sn      = r[3] != null ? normID(r[3]) : null;
+    r._inv     = String(r[0]||'').trim();
+    r._shipped = r._sn ? shipSet.has(r._sn) : false;
+    r._transit = (lotStatus[r._inv] === 'Delivery in USA') && !r._shipped;
+    r._upgrade = !r._transit && !r._shipped;
+  });
+
+  // MacBook/iPad/Dell
+  const rawMb = get('DB | Macbook');
+  const mbRows = rawMb.slice(3).filter(r => r[3]);
+  mbRows.forEach(r => {
+    r._model   = cleanMb(String(r[3]||'').trim());
+    r._sn      = r[4] != null ? normID(r[4]) : null;
+    r._inv     = String(r[0]||'').trim();
+    r._shipped = r._sn ? shipSet.has(r._sn) : false;
+    r._transit = (lotStatus[r._inv] === 'Delivery in USA') && !r._shipped;
+    r._upgrade = !r._transit && !r._shipped;
+  });
+
+  // Watch
+  const rawW = get('DB | Watch');
+  const wRows = rawW.slice(3).filter(r => r[2]);
+  wRows.forEach(r => {
+    r._model   = String(r[2]||'').trim();
+    r._inv     = String(r[0]||'').trim();
+    r._shipped = false;
+    r._transit = (lotStatus[r._inv] === 'Delivery in USA');
+    r._upgrade = !r._transit;
+  });
+
+  setProgress(90, 'Будуємо звіт...');
+  await tick();
+
+  // Summaries
+  _phoneSumm = summarize(phoneRows, r => r._model+'||'+r._storage, r => ({ Model:r._model, Storage:r._storage }));
+  _apSumm    = summarize(apRows,  r => r._model, r => ({ Model:r._model }));
+  _macSumm   = summarize(mbRows.filter(r => r._model.startsWith('MacBook')), r => r._model, r => ({ Model:r._model }));
+  _ipadSumm  = summarize(mbRows.filter(r => r._model.startsWith('iPad')),    r => r._model, r => ({ Model:r._model }));
+  _dellSumm  = summarize(mbRows.filter(r => r._model.startsWith('Dell')),    r => r._model, r => ({ Model:r._model }));
+  _wSumm     = summarize(wRows,   r => r._model, r => ({ Model:r._model }));
+
+  // Meta bar
+  const transitLots = Object.entries(lotStatus).filter(([,v]) => v==='Delivery in USA').map(([k])=>k).sort();
+  const uaLots      = Object.entries(lotStatus).filter(([,v]) => v==='Delivery to UA').map(([k])=>k).sort();
+  document.getElementById('metaBar').innerHTML = `
+    <span class="tag">Файл: <span>${file.name}</span></span>
+    <span class="tag">Відгружено: <span>${shipSet.size.toLocaleString()}</span></span>
+    <span class="tag" style="color:var(--orange)">Транзит лотів: <span>${transitLots.length}</span></span>
+    <span class="tag" style="color:var(--green)">Доставлено лотів: <span>${uaLots.length}</span></span>
+  `;
+
+  // Stock tab
+  const upgradePhones = phoneRows.filter(r => r._upgrade);
+  _stockIphone = upgradePhones.filter(r => r._model.match(/iPhone|Air/));
+  _stockPixel  = upgradePhones.filter(r => r._model.includes('Pixel'));
+  renderCards('stockSummary', { total:upgradePhones.length, transit:0, upgrade:upgradePhones.length, shipped:0 });
+  renderStockTables();
+
+  // Phones tab
+  const iphones = Object.fromEntries(Object.entries(_phoneSumm).filter(([k])=>k.match(/iPhone|Air/)));
+  const pixels  = Object.fromEntries(Object.entries(_phoneSumm).filter(([k])=>k.includes('Pixel')));
+  renderCards('phoneSummary', aggSumm(Object.values(_phoneSumm)));
+  renderTable('iphoneTable', iphones, true);
+  renderTable('pixelTable',  pixels,  true);
+  document.getElementById('iphoneCount').textContent = Object.values(iphones).reduce((a,v)=>a+v.total,0).toLocaleString()+' шт';
+  document.getElementById('pixelCount').textContent  = Object.values(pixels ).reduce((a,v)=>a+v.total,0).toLocaleString()+' шт';
+
+  // Other tabs
+  renderCards('apSummary',   aggSumm(Object.values(_apSumm)));
+  renderTable('apTable',     _apSumm, false);
+  renderCards('mbSummary',   aggSumm(Object.values(_macSumm)));
+  renderTable('mbTable',     _macSumm, false);
+  renderCards('ipadSummary', aggSumm(Object.values(_ipadSumm)));
+  renderTable('ipadTable',   _ipadSumm, false);
+  renderCards('dellSummary', aggSumm(Object.values(_dellSumm)));
+  renderTable('dellTable',   _dellSumm, false);
+  renderCards('watchSummary',aggSumm(Object.values(_wSumm)));
+  renderTable('watchTable',  _wSumm, false, true);
+
+  setProgress(100, '✓ Готово!');
+  document.getElementById('results').style.display = 'block';
+}
+
+// ── Stock tab ────────────────────────────────────────────────
+function setGroupBy(mode) {
+  _groupBy = mode;
+  document.querySelectorAll('.ctrl-btn').forEach(b => {
+    b.classList.toggle('active', b.getAttribute('onclick').includes("'"+mode+"'"));
+  });
+  renderStockTables();
+}
+
+function renderStockTables() {
+  renderStockTable('stockIphoneTable', _stockIphone, _groupBy);
+  renderStockTable('stockPixelTable',  _stockPixel,  _groupBy);
+  document.getElementById('stockIphoneCount').textContent = _stockIphone.length.toLocaleString()+' шт';
+  document.getElementById('stockPixelCount').textContent  = _stockPixel.length.toLocaleString()+' шт';
+}
+
+function renderStockTable(id, rows, groupBy) {
+  if (!rows.length) {
+    document.getElementById(id).innerHTML = '<tbody><tr><td colspan="10" style="text-align:center;color:var(--muted);padding:24px">Немає даних</td></tr></tbody>';
+    return;
+  }
+  const grades   = ['A+','A','B+','B','C'];
+  const auctions = [...new Set(rows.map(r=>r._auction))].filter(Boolean).sort();
+  const models   = [...new Set(rows.map(r=>r._model+'||'+r._storage))].sort((a,b)=>phoneSortKey(a).localeCompare(phoneSortKey(b)));
+
+  if (groupBy === 'grade') {
+    let thead = `<thead><tr><th>Model</th><th>Storage</th>${grades.map(g=>`<th>${gradeTag(g)}</th>`).join('')}<th>Total</th></tr></thead>`;
+    let tbody = '<tbody>'; const totals = {}; grades.forEach(g=>totals[g]=0); let grand=0;
+    models.forEach(mk => {
+      const [model,storage]=mk.split('||'); const mr=rows.filter(r=>r._model===model&&r._storage===storage);
+      if(!mr.length) return;
+      let rt=0; let tr=`<tr><td>${model}<span class="storage-tag">${storage}</span></td>`;
+      grades.forEach(g=>{const c=mr.filter(r=>r._grade===g).length;totals[g]=(totals[g]||0)+c;rt+=c;tr+=`<td>${num(c,'total')}</td>`;});
+      grand+=rt; tr+=`<td>${num(rt,'total')}</td></tr>`; tbody+=tr;
+    });
+    tbody+=`<tr class="sub-row"><td colspan="2">TOTAL</td>${grades.map(g=>`<td>${num(totals[g]||0,'total')}</td>`).join('')}<td>${num(grand,'total')}</td></tr></tbody>`;
+    document.getElementById(id).innerHTML = thead+tbody;
+  } else if (groupBy === 'auction') {
+    let thead = `<thead><tr><th>Model</th><th>Storage</th>${auctions.map(a=>`<th>${auctionTag(a)}</th>`).join('')}<th>Total</th></tr></thead>`;
+    let tbody = '<tbody>'; const totals = {}; auctions.forEach(a=>totals[a]=0); let grand=0;
+    models.forEach(mk => {
+      const [model,storage]=mk.split('||'); const mr=rows.filter(r=>r._model===model&&r._storage===storage);
+      if(!mr.length) return;
+      let rt=0; let tr=`<tr><td>${model}<span class="storage-tag">${storage}</span></td>`;
+      auctions.forEach(a=>{const c=mr.filter(r=>r._auction===a).length;totals[a]=(totals[a]||0)+c;rt+=c;tr+=`<td>${num(c,'total')}</td>`;});
+      grand+=rt; tr+=`<td>${num(rt,'total')}</td></tr>`; tbody+=tr;
+    });
+    tbody+=`<tr class="sub-row"><td colspan="2">TOTAL</td>${auctions.map(a=>`<td>${num(totals[a]||0,'total')}</td>`).join('')}<td>${num(grand,'total')}</td></tr></tbody>`;
+    document.getElementById(id).innerHTML = thead+tbody;
+  } else {
+    let thead = `<thead><tr><th>Model</th><th>Storage</th><th>Grade</th>${auctions.map(a=>`<th>${auctionTag(a)}</th>`).join('')}<th>Sub</th></tr></thead>`;
+    let tbody = '<tbody>'; let grand=0;
+    models.forEach(mk => {
+      const [model,storage]=mk.split('||'); const mr=rows.filter(r=>r._model===model&&r._storage===storage);
+      if(!mr.length) return;
+      let mt=0; const grs=[];
+      grades.forEach(g=>{
+        const gr=mr.filter(r=>r._grade===g); if(!gr.length) return;
+        let s=0; let tr=`<tr><td></td><td></td><td>${gradeTag(g)}</td>`;
+        auctions.forEach(a=>{const c=gr.filter(r=>r._auction===a).length;s+=c;tr+=`<td>${num(c,'total')}</td>`;});
+        tr+=`<td>${num(s,'total')}</td></tr>`; mt+=s; grs.push(tr);
+      });
+      tbody+=`<tr style="background:var(--surface2)"><td colspan="2"><b>${model}</b> <span class="storage-tag">${storage}</span></td><td colspan="${auctions.length+2}" style="font-size:11px;color:var(--muted)">всього: ${mt}</td></tr>`;
+      grs.forEach(r=>tbody+=r); grand+=mt;
+    });
+    tbody+=`<tr class="sub-row"><td colspan="${auctions.length+4}">GRAND TOTAL: ${grand.toLocaleString()}</td></tr></tbody>`;
+    document.getElementById(id).innerHTML = thead+tbody;
+  }
+}
+
+// ── Export Full Report ────────────────────────────────────────
+function dlXLSX(ewb, fname) {
+  const wbout = XLSX.write(ewb, { bookType:'xlsx', type:'array' });
+  const blob  = new Blob([wbout], { type:'application/octet-stream' });
+  const url   = URL.createObjectURL(blob);
+  const a     = document.createElement('a');
+  a.href = url; a.download = fname;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function testDownload() {
+  try {
+    const ewb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet([['Test','OK'],[1,2]]);
+    XLSX.utils.book_append_sheet(ewb, ws, 'Test');
+    const wbout = XLSX.write(ewb, { bookType:'xlsx', type:'array' });
+    const blob = new Blob([wbout], { type:'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'test.xlsx';
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    alert('✓ Тест OK — файл повинен скачатись');
+  } catch(e) { alert('✗ Помилка: ' + e.message); }
+}
+
+function exportFullReport() {
+  if (!Object.keys(_phoneSumm).length) { alert('Спочатку завантажте файл'); return; }
+  try {
+    const ewb = XLSX.utils.book_new();
+
+    function pSort(a, b) {
+      const [am,as_]=a.split('||'); const [bm,bs]=b.split('||');
+      const ab=(am||'').replace(/\s*(Ultra|Pro Max|Pro|Plus)\s*/gi,'').trim();
+      const bb=(bm||'').replace(/\s*(Ultra|Pro Max|Pro|Plus)\s*/gi,'').trim();
+      if(ab!==bb) return ab.localeCompare(bb);
+      const rd=modelRank(am||'')-modelRank(bm||'');
+      if(rd!==0) return rd;
+      return storageRank(as_||'')-storageRank(bs||'');
+    }
+
+    function toR(summ, hasStorage, sortFn) {
+      return Object.entries(summ)
+        .sort(sortFn || (([a],[b])=>a.localeCompare(b)))
+        .map(([key,v]) => {
+          const [model,storage] = hasStorage ? key.split('||') : [key,''];
+          return [model, storage||'', v.total, v.transit, v.upgrade, v.shipped];
+        });
+    }
+
+    function addSh(name, sections) {
+      const data = [['Model','Storage','Total Purchased','In Transit','In Upgrade','Shipped to Comfy']];
+      sections.forEach(function(sec) {
+        data.push([sec.label,'','','','','']);
+        sec.rows.forEach(function(r) { data.push(r); });
+        var t = sec.rows.reduce(function(a,r){ return [a[0],a[1],a[2]+r[2],a[3]+r[3],a[4]+r[4],a[5]+r[5]]; }, ['Subtotal','',0,0,0,0]);
+        data.push(t);
+        data.push([]);
+      });
+      var grand = data.filter(function(r){ return r[0]==='Subtotal'; }).reduce(function(a,r){ return [a[0],a[1],a[2]+r[2],a[3]+r[3],a[4]+r[4],a[5]+r[5]]; }, ['GRAND TOTAL','',0,0,0,0]);
+      data.push(grand);
+      var ws = XLSX.utils.aoa_to_sheet(data);
+      ws['!cols'] = [{wch:32},{wch:10},{wch:17},{wch:13},{wch:13},{wch:17}];
+      XLSX.utils.book_append_sheet(ewb, ws, name);
+    }
+
+    var iphones = toR(Object.fromEntries(Object.entries(_phoneSumm).filter(function(e){ return e[0].match(/iPhone|Air/); })), true, pSort);
+    var pixels  = toR(Object.fromEntries(Object.entries(_phoneSumm).filter(function(e){ return e[0].includes('Pixel'); })),  true, pSort);
+    var apR     = toR(_apSumm,   false);
+    var macR    = toR(_macSumm,  false);
+    var ipadR   = toR(_ipadSumm, false);
+    var dellR   = toR(_dellSumm, false);
+    var wR      = toR(_wSumm,    false);
+
+    addSh('Phones', [{label:'Apple iPhone',rows:iphones},{label:'Google Pixel',rows:pixels}]);
+
+    var other = [];
+    if(apR.length)   other.push({label:'AirPods', rows:apR});
+    if(macR.length)  other.push({label:'MacBook', rows:macR});
+    if(ipadR.length) other.push({label:'iPad',    rows:ipadR});
+    if(dellR.length) other.push({label:'Dell',    rows:dellR});
+    if(wR.length)    other.push({label:'Watch',   rows:wR});
+    if(other.length) addSh('Other Products', other);
+    addSh('All Products', [{label:'Apple iPhone',rows:iphones},{label:'Google Pixel',rows:pixels}].concat(other));
+
+    var wbout = XLSX.write(ewb, { bookType:'xlsx', type:'array' });
+    var blob  = new Blob([wbout], { type:'application/octet-stream' });
+    var url   = URL.createObjectURL(blob);
+    var a     = document.createElement('a');
+    a.href = url;
+    a.download = 'warehouse_report.xlsx';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  } catch(e) { alert('Помилка: ' + e.message + '\n' + e.stack); }
+}
+
+// ── Export Stock XLSX ─────────────────────────────────────────
+function exportStockXLSX() {
+  const allRows = [..._stockIphone, ..._stockPixel];
+  if (!allRows.length) { alert('Немає даних'); return; }
+  const ewb = XLSX.utils.book_new();
+  const grades   = ['A+','A','B+','B','C'];
+  const auctions = [...new Set(allRows.map(r=>r._auction))].filter(Boolean).sort();
+  const models   = [...new Set(allRows.map(r=>r._model+'||'+r._storage))].sort((a,b)=>phoneSortKey(a).localeCompare(phoneSortKey(b)));
+  const cw = arr => arr.map(w=>({wch:w}));
+
+  const s1 = [['Model','Storage',...grades,'Total']]; const t1={}; grades.forEach(g=>t1[g]=0); let g1=0;
+  models.forEach(mk=>{
+    const [m,s]=mk.split('||'); const mr=allRows.filter(r=>r._model===m&&r._storage===s); if(!mr.length) return;
+    let t=0; const row=[m,s]; grades.forEach(g=>{const c=mr.filter(r=>r._grade===g).length;t1[g]+=c;t+=c;row.push(c||0);}); row.push(t); g1+=t; s1.push(row);
+  });
+  s1.push(['TOTAL','',...grades.map(g=>t1[g]),g1]);
+  const ws1=XLSX.utils.aoa_to_sheet(s1); ws1['!cols']=cw([36,10,...grades.map(()=>8),10]);
+  XLSX.utils.book_append_sheet(ewb,ws1,'По Грейду');
+
+  const s2=[['Model','Storage',...auctions,'Total']]; const t2={}; auctions.forEach(a=>t2[a]=0); let g2=0;
+  models.forEach(mk=>{
+    const [m,s]=mk.split('||'); const mr=allRows.filter(r=>r._model===m&&r._storage===s); if(!mr.length) return;
+    let t=0; const row=[m,s]; auctions.forEach(a=>{const c=mr.filter(r=>r._auction===a).length;t2[a]+=c;t+=c;row.push(c||0);}); row.push(t); g2+=t; s2.push(row);
+  });
+  s2.push(['TOTAL','',...auctions.map(a=>t2[a]),g2]);
+  const ws2=XLSX.utils.aoa_to_sheet(s2); ws2['!cols']=cw([36,10,...auctions.map(()=>12),10]);
+  XLSX.utils.book_append_sheet(ewb,ws2,'По Аукціону');
+
+  const s3=[['Model','Storage','Grade',...auctions,'Sub']];
+  models.forEach(mk=>{
+    const [m,s]=mk.split('||'); const mr=allRows.filter(r=>r._model===m&&r._storage===s); if(!mr.length) return;
+    let mt=0; const grs=[];
+    grades.forEach(g=>{
+      const gr=mr.filter(r=>r._grade===g); if(!gr.length) return;
+      let sub=0; const row=['','',g]; auctions.forEach(a=>{const c=gr.filter(r=>r._auction===a).length;sub+=c;row.push(c||0);}); row.push(sub); mt+=sub; grs.push(row);
+    });
+    s3.push([m,s,'',...Array(auctions.length).fill(''),mt]); grs.forEach(r=>s3.push(r));
+  });
+  const ws3=XLSX.utils.aoa_to_sheet(s3); ws3['!cols']=cw([36,10,8,...auctions.map(()=>12),10]);
+  XLSX.utils.book_append_sheet(ewb,ws3,'Грейд + Аукціон');
+
+  const s4=[['Model','Storage','Grade','Auction','IMEI','Invoice'],...allRows.map(r=>[r._model,r._storage,r._grade,r._auction,r._imei||'',r._inv])];
+  const ws4=XLSX.utils.aoa_to_sheet(s4); ws4['!cols']=cw([36,10,8,12,18,8]);
+  XLSX.utils.book_append_sheet(ewb,ws4,'Raw Data');
+
+  dlXLSX(ewb, `stock_report_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+// ── Helpers ───────────────────────────────────────────────────
+function tick() { return new Promise(r => setTimeout(r, 30)); }
+function normGrade(g) { return g.replace('С','C').trim(); }
+function normPhone(m) { return m.replace('Pixel 8 pro','Pixel 8 Pro').replace('Pixel 10 Pro Xl','Pixel 10 Pro XL').replace('Pixel 9 a','Pixel 9a'); }
+function normStorage(s) { return s.replace(/256[bB]$/,'256GB'); }
+function cleanMb(m) {
+  m = m.replace(/ - Apple M\d.*/,'').replace(/\s*\(Demo\)/g,'');
+  COLORS.forEach(c => { m=m.replace(' '+c,'').replace('/'+c,''); });
+  const fx = {'MacBook Pro 14" M4 PRO 512GB':'MacBook Pro 14" M4 Pro 512GB','MacBook Pro 14" M4 PRO 1TB':'MacBook Pro 14" M4 Pro 1TB','MacBook Pro Laptop (16-inch)':'MacBook Pro 16" M4 Max 36GB/1TB'};
+  return (fx[m.trim()]||m).trim();
+}
+function modelRank(m) { if(/Ultra/i.test(m)) return 4; if(/Pro Max/i.test(m)) return 3; if(/Pro/i.test(m)) return 2; if(/Plus/i.test(m)) return 1; return 0; }
+function storageRank(s) { if(!s) return 0; return s.includes('TB') ? parseInt(s)*1000 : parseInt(s)||0; }
+function phoneSortKey(key) {
+  const [model,storage]=key.split('||');
+  const base=(model||'').replace(/\s*(Ultra|Pro Max|Pro|Plus)\s*/gi,'').trim();
+  return `${base}__${modelRank(model||'')}__${String(storageRank(storage||'')).padStart(6,'0')}`;
+}
+function summarize(rows, keyFn, metaFn) {
+  const out={};
+  rows.forEach(r=>{
+    const k=keyFn(r);
+    if(!out[k]) out[k]={...metaFn(r),total:0,transit:0,upgrade:0,shipped:0};
+    out[k].total++;
+    if(r._transit) out[k].transit++;
+    if(r._upgrade) out[k].upgrade++;
+    if(r._shipped) out[k].shipped++;
+  });
+  return out;
+}
+function aggSumm(rows) { return rows.reduce((a,r)=>({total:a.total+r.total,transit:a.transit+r.transit,upgrade:a.upgrade+r.upgrade,shipped:a.shipped+r.shipped}),{total:0,transit:0,upgrade:0,shipped:0}); }
+function renderCards(id, d) {
+  document.getElementById(id).innerHTML = `
+    <div class="card total"><div class="card-label">Total Purchased</div><div class="card-value">${d.total.toLocaleString()}</div></div>
+    <div class="card transit"><div class="card-label">In Transit</div><div class="card-value">${d.transit.toLocaleString()}</div></div>
+    <div class="card upgrade"><div class="card-label">In Upgrade</div><div class="card-value">${d.upgrade.toLocaleString()}</div></div>
+    <div class="card shipped"><div class="card-label">Shipped to Comfy</div><div class="card-value">${d.shipped.toLocaleString()}</div></div>`;
+}
+function num(v, cls) { return `<span class="num ${v===0?'zero':cls}">${v===0?'—':v.toLocaleString()}</span>`; }
+function renderTable(id, summ, hasStorage, noShipped=false) {
+  const isPhone = hasStorage && Object.keys(summ).some(k=>k.match(/iPhone|Pixel/));
+  const entries = Object.entries(summ).sort(([a],[b]) => isPhone ? phoneSortKey(a).localeCompare(phoneSortKey(b)) : a.localeCompare(b));
+  const totals  = aggSumm(entries.map(([,v])=>v));
+  const shTh = noShipped?'':'<th>Shipped to Comfy</th>';
+  const storageTh = hasStorage ? '<th>Storage</th>' : '';
+  const rows = entries.map(([,v])=>`
+    <tr>
+      <td>${v.Model}</td>
+      ${hasStorage ? `<td style="text-align:center">${v.Storage||''}</td>` : ''}
+      <td>${num(v.total,'total')}</td><td>${num(v.transit,'transit')}</td>
+      <td>${num(v.upgrade,'upgrade')}</td>${noShipped?'':`<td>${num(v.shipped,'shipped')}</td>`}
+    </tr>`).join('');
+  const storageTotal = hasStorage ? '<td>—</td>' : '';
+  document.getElementById(id).innerHTML = `
+    <thead><tr><th>Model</th>${storageTh}<th>Total Purchased</th><th>In Transit</th><th>In Upgrade</th>${shTh}</tr></thead>
+    <tbody>${rows}
+      <tr class="sub-row"><td>TOTAL</td>${storageTotal}<td>${num(totals.total,'total')}</td><td>${num(totals.transit,'transit')}</td><td>${num(totals.upgrade,'upgrade')}</td>${noShipped?'':`<td>${num(totals.shipped,'shipped')}</td>`}</tr>
+    </tbody>`;
+}
+function gradeSort(a,b){const o={'A+':0,'A':1,'B+':2,'B':3,'C':4,'':5};return(o[a]??9)-(o[b]??9);}
+function gradeTag(g){return `<span class="grade-${g.replace('+','\\+')}">${g||'—'}</span>`;}
+function auctionTag(a){const cls=a==='T-Mobile'?'TMobile':a in{ATT:1,BELL:1,Poland:1}?a:'other';return `<span class="auction-tag auction-${cls}">${a}</span>`;}
+function showTab(name) {
+  ['phones','stock','airpods','macbook','ipad','dell','watch'].forEach(t=>{
+    document.getElementById('tab-'+t).style.display=t===name?'block':'none';
+  });
+  document.querySelectorAll('.tab').forEach(btn=>{
+    btn.classList.toggle('active',btn.getAttribute('onclick').includes("'"+name+"'"));
+  });
+}
+
+</script>
+</body>
+</html>

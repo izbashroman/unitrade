@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tools Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Unbounded:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0f;
+    --bg2: #111118;
+    --bg3: #18181f;
+    --border: rgba(255,255,255,0.07);
+    --border-hover: rgba(255,255,255,0.15);
+    --text: #f0f0f5;
+    --muted: #6b6b80;
+    --accent1: #7c6af5;
+    --accent2: #3ecfb2;
+    --accent3: #f5a742;
+    --accent4: #f5526a;
+    --accent5: #4a9eff;
+    --font-display: 'Unbounded', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-mono);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrapper {
+    position: relative;
+    z-index: 1;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 60px 24px 80px;
+  }
+
+  header {
+    margin-bottom: 64px;
+  }
+
+  .label {
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+
+  h1 {
+    font-family: var(--font-display);
+    font-size: clamp(28px, 5vw, 48px);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+
+  h1 span {
+    display: block;
+    background: linear-gradient(135deg, var(--accent1) 0%, var(--accent2) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .subtitle {
+    margin-top: 16px;
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+  }
+
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    text-decoration: none;
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    transition: border-color 0.2s, transform 0.2s, background 0.2s;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--card-accent);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .card:hover {
+    border-color: var(--border-hover);
+    background: var(--bg3);
+    transform: translateY(-2px);
+  }
+
+  .card:hover::before {
+    opacity: 1;
+  }
+
+  .card-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  .card-meta {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .card-title {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  .card-desc {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+    flex: 1;
+  }
+
+  .card-arrow {
+    font-size: 16px;
+    color: var(--muted);
+    transition: color 0.2s, transform 0.2s;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .card:hover .card-arrow {
+    color: var(--text);
+    transform: translate(2px, -2px);
+  }
+
+  .card-tag {
+    display: inline-block;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: var(--card-bg);
+    color: var(--card-accent);
+    border: 1px solid var(--card-border);
+    align-self: flex-start;
+  }
+
+  /* card 1 — auction */
+  .c1 { --card-accent: var(--accent1); --card-bg: rgba(124,106,245,0.08); --card-border: rgba(124,106,245,0.2); }
+  /* card 2 — ATT */
+  .c2 { --card-accent: var(--accent2); --card-bg: rgba(62,207,178,0.08); --card-border: rgba(62,207,178,0.2); }
+  /* card 3 — IMEI */
+  .c3 { --card-accent: var(--accent5); --card-bg: rgba(74,158,255,0.08); --card-border: rgba(74,158,255,0.2); }
+  /* card 4 — statistics */
+  .c4 { --card-accent: var(--accent3); --card-bg: rgba(245,167,66,0.08); --card-border: rgba(245,167,66,0.2); }
+  /* card 5 — warehouse */
+  .c5 { --card-accent: #a78bfa; --card-bg: rgba(167,139,250,0.08); --card-border: rgba(167,139,250,0.2); }
+  /* card 6 — parts report */
+  .c6 { --card-accent: var(--accent4); --card-bg: rgba(245,82,106,0.08); --card-border: rgba(245,82,106,0.2); }
+
+  footer {
+    margin-top: 64px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .footer-text {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+
+  .status-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent2);
+    margin-right: 6px;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  @media (max-width: 600px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <header>
+    <p class="label">Internal Tools / v1.0</p>
+    <h1>Business<span>Dashboard</span></h1>
+    <p class="subtitle">Все рабочие инструменты в одном месте.<br>Выберите нужный раздел для работы.</p>
+  </header>
+
+  <div class="grid">
+
+    <a href="att-calculator/index.html" class="card c2">
+      <div class="card-meta">
+        <div class="card-icon c2">🧮</div>
+        <span class="card-arrow">↗</span>
+      </div>
+      <div>
+        <div class="card-title">ATT Calculator</div>
+      </div>
+      <p class="card-desc">Калькулятор расчётов ATT — быстрый подсчёт и анализ данных.</p>
+      <span class="card-tag">calculator</span>
+    </a>
+
+    <a href="imei-search/index.html" class="card c3">
+      <div class="card-meta">
+        <div class="card-icon c3">📱</div>
+        <span class="card-arrow">↗</span>
+      </div>
+      <div>
+        <div class="card-title">Поиск по IMEI</div>
+      </div>
+      <p class="card-desc">Поиск и проверка товара по IMEI — история устройства и статус.</p>
+      <span class="card-tag">search</span>
+    </a>
+
+    <a href="auction-stats/index.html" class="card c4">
+      <div class="card-meta">
+        <div class="card-icon c4">📊</div>
+        <span class="card-arrow">↗</span>
+      </div>
+      <div>
+        <div class="card-title">Статистика аукциона</div>
+      </div>
+      <p class="card-desc">Аналитика и отчёты по проведённым аукционам — графики и показатели.</p>
+      <span class="card-tag">analytics</span>
+    </a>
+
+    <a href="warehouse/index.html" class="card c5">
+      <div class="card-meta">
+        <div class="card-icon c5">🏭</div>
+        <span class="card-arrow">↗</span>
+      </div>
+      <div>
+        <div class="card-title">Warehouse App</div>
+      </div>
+      <p class="card-desc">Управление складом: остатки, приём и отгрузка товара.</p>
+      <span class="card-tag">warehouse</span>
+    </a>
+
+    <a href="parts-report/index.html" class="card c6">
+      <div class="card-meta">
+        <div class="card-icon c6">🔧</div>
+        <span class="card-arrow">↗</span>
+      </div>
+      <div>
+        <div class="card-title">Отчёт по запчастям</div>
+      </div>
+      <p class="card-desc">Учёт и отчётность по запасным частям — расход, поставки, остатки.</p>
+      <span class="card-tag">report</span>
+    </a>
+
+  </div>
+
+  <footer>
+    <span class="footer-text"><span class="status-dot"></span>Все системы активны</span>
+    <span class="footer-text">Internal Tools Dashboard</span>
+  </footer>
+
+</div>
+</body>
+</html>
