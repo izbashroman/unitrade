@@ -1,0 +1,3121 @@
+<!DOCTYPE html>
+<html lang="uk" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ATT Lot Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Epilogue:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ═══ THEMES ═══ */
+[data-theme="dark"]{
+  --logo-filter: none;
+  --bg:#0f0f11;--s1:#161618;--s2:#1c1c1f;--s3:#242428;
+  --b1:rgba(255,255,255,.06);--b2:rgba(255,255,255,.11);--b3:rgba(255,255,255,.2);
+  --t1:#f2f2f2;--t2:#9a9a9a;--t3:#5a5a5a;
+  --acc:#d4ff4e;--acc2:#4effe0;--red:#ff5252;--amber:#ffb84e;--green:#4eff9a;
+  --shadow:0 2px 8px rgba(0,0,0,.4);
+}
+[data-theme="light"]{
+  --logo-filter: none;
+  --bg:#f0f4ff;--s1:#ffffff;--s2:#e8effe;--s3:#d4e2fd;
+  --b1:rgba(37,99,235,.09);--b2:rgba(37,99,235,.18);--b3:rgba(37,99,235,.30);
+  --t1:#0f172a;--t2:#3d5080;--t3:#94a7c8;
+  --acc:#2563eb;--acc2:#0ea5e9;--red:#dc2626;--amber:#d97706;--green:#16a34a;
+  --shadow:0 2px 8px rgba(37,99,235,.10);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{font-size:13px}
+body{background:var(--bg);color:var(--t1);font-family:'Epilogue',sans-serif;min-height:100vh;display:flex;flex-direction:column;transition:background .2s,color .2s}
+
+/* ═══ TOPBAR ═══ */
+.topbar{height:48px;background:var(--s1);border-bottom:1px solid var(--b1);display:flex;align-items:center;padding:0 16px;gap:10px;position:sticky;top:0;z-index:100;box-shadow:var(--shadow)}
+.logo{display:flex;align-items:center;margin-right:6px}.logo img{filter:var(--logo-filter,invert(1) brightness(2))}
+.logo-dot{display:none}
+.tabs{display:flex;gap:2px}
+.tab{padding:6px 12px;border-radius:5px;font-size:12px;font-weight:600;cursor:pointer;color:var(--t2);border:none;background:none;transition:all .15s;white-space:nowrap}
+.tab:hover{color:var(--t1);background:var(--s3)}
+.tab.on{color:var(--acc);background:rgba(128,200,0,.1)}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.rate-wrap{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--t2)}
+.rate-wrap input{width:56px;background:var(--s3);border:1px solid var(--b2);border-radius:5px;padding:4px 7px;color:var(--t1);font-family:'JetBrains Mono',monospace;font-size:12px;text-align:center}
+.rate-wrap input:focus{outline:none;border-color:var(--acc)}
+.theme-btn{background:var(--s2);border:1px solid var(--b2);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:13px;transition:all .15s}
+.theme-btn:hover{background:var(--s3)}
+
+/* ═══ LAYOUT ═══ */
+.body{flex:1;overflow:hidden}
+.pane{display:none;height:calc(100vh - 48px);overflow-y:auto;padding:16px 18px}
+.pane.on{display:block}
+.card{background:var(--s1);border:1px solid var(--b1);border-radius:8px;margin-bottom:12px}
+.card-inner{padding:14px 16px}
+.card-title{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin-bottom:12px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--t3)}
+.field input,.field select{background:var(--s2);border:1px solid var(--b2);border-radius:6px;padding:8px 10px;color:var(--t1);font-family:'JetBrains Mono',monospace;font-size:12px;width:100%}
+.field input:focus,.field select:focus{outline:none;border-color:var(--acc)}
+.hint{font-size:10px;color:var(--t3);font-family:'JetBrains Mono',monospace}
+
+/* ═══ METRICS ═══ */
+.metric{background:var(--s2);border:1px solid var(--b1);border-radius:8px;padding:12px 14px}
+.m-lbl{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--t3);margin-bottom:5px}
+.m-val{font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:500}
+.m-sub{font-size:10px;color:var(--t2);font-family:'JetBrains Mono',monospace;margin-top:2px}
+.metric.hi{border-color:var(--acc);background:rgba(128,200,0,.05)}
+.metric.hi .m-val{color:var(--acc)}
+.pos{color:var(--green)}.neg{color:var(--red)}.warn{color:var(--amber)}
+
+/* ═══ SUMMARY BAR ═══ */
+.summary-bar{background:var(--s2);border:1px solid var(--b1);border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.sb-item{display:flex;flex-direction:column;gap:2px}
+.sb-lbl{font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--t3)}
+.sb-val{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500}
+.sb-sep{width:1px;height:28px;background:var(--b2)}
+
+/* ═══ FILTER BAR ═══ */
+.filter-bar{display:flex;align-items:center;gap:5px;margin-bottom:10px;flex-wrap:wrap}
+.filter-btn{font-size:11px;font-family:'JetBrains Mono',monospace;padding:4px 10px;border-radius:5px;border:1px solid var(--b1);background:none;color:var(--t2);cursor:pointer;transition:all .15s}
+.filter-btn:hover,.filter-btn.on{background:var(--s2);border-color:var(--b2);color:var(--t1)}
+.fsearch{background:var(--s2);border:1px solid var(--b1);border-radius:5px;padding:4px 10px;color:var(--t1);font-family:'JetBrains Mono',monospace;font-size:11px;width:150px}
+.fsearch:focus{outline:none;border-color:var(--b2)}
+
+/* ═══ LOT TABLE ═══ */
+.lot-table-wrap{overflow-x:auto}
+table.lt{width:100%;border-collapse:collapse;font-size:12px}
+table.lt th{font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--t3);padding:7px 9px;text-align:left;border-bottom:1px solid var(--b1);white-space:nowrap}
+table.lt td{padding:6px 9px;border-bottom:1px solid var(--b1);vertical-align:middle;white-space:nowrap}
+table.lt tr:last-child td{border-bottom:none}
+table.lt tr.lot-hdr td{background:var(--s2);font-weight:500}
+table.lt tr.sku-row td{padding:4px 9px;background:none}
+table.lt tr:hover td{background:var(--s3)}
+.lot-id{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--acc);cursor:pointer;font-weight:500}
+.lot-id:hover{text-decoration:underline}
+.mono{font-family:'JetBrains Mono',monospace;font-size:11px}
+.badge{display:inline-block;font-size:10px;padding:2px 6px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-weight:500}
+.b-ap{background:rgba(100,180,0,.12);color:var(--green)}
+.b-aap{background:rgba(0,150,200,.1);color:var(--acc2)}
+.b-bp{background:rgba(200,130,0,.12);color:var(--amber)}
+.b-cp{background:rgba(200,50,50,.12);color:var(--red)}
+.b-ok{background:rgba(0,180,80,.1);color:var(--green)}
+.b-bad{background:rgba(200,50,50,.1);color:var(--red)}
+.b-warn{background:rgba(200,130,0,.1);color:var(--amber)}
+
+/* ═══ INLINE PRICE INPUT ═══ */
+.price-inp{background:var(--s2);border:1px solid var(--b2);border-radius:5px;padding:4px 7px;color:var(--t1);font-family:'JetBrains Mono',monospace;font-size:12px;width:88px;transition:all .15s}
+.price-inp:focus{outline:none;border-color:var(--acc);background:var(--s1)}
+
+.repair-inp{background:var(--s2);border:1px solid var(--b1);border-radius:4px;padding:3px 5px;color:var(--t2);font-family:'JetBrains Mono',monospace;font-size:10px;width:50px;text-align:center}
+.repair-inp:focus{outline:none;border-color:var(--acc)}
+
+/* ═══ BUTTONS ═══ */
+.btn{padding:7px 14px;border-radius:6px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;cursor:pointer;border:none;transition:all .15s}
+.btn-acc{background:var(--acc);color:#0f0f00}
+.btn-acc:hover{filter:brightness(1.1)}
+.btn-ghost{background:none;border:1px solid var(--b2);color:var(--t2)}
+.btn-ghost:hover{border-color:var(--b3);color:var(--t1)}
+.btn-sm{padding:4px 10px;font-size:11px}
+.del-btn{font-size:13px;background:none;border:none;color:var(--t3);cursor:pointer;padding:2px 5px;border-radius:4px}
+.del-btn:hover{color:var(--red)}
+
+/* ═══ IMPORT / DROP ═══ */
+.multi-drop{border:1.5px dashed var(--b2);border-radius:8px;padding:22px;text-align:center;cursor:pointer;transition:all .2s;position:relative;margin-bottom:14px}
+.multi-drop:hover{border-color:var(--acc);background:rgba(128,200,0,.03)}
+.multi-drop input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.md-icon{font-size:22px;margin-bottom:7px;opacity:.5}
+.md-title{font-size:13px;font-weight:600;color:var(--t1);margin-bottom:3px}
+.md-sub{font-size:10px;color:var(--t3);font-family:'JetBrains Mono',monospace}
+
+/* ═══ IMPORT TABLE ═══ */
+table.it{width:100%;border-collapse:collapse;font-size:12px}
+table.it th{font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--t3);padding:7px 9px;text-align:left;border-bottom:1px solid var(--b1);white-space:nowrap}
+table.it td{padding:5px 9px;border-bottom:1px solid var(--b1);vertical-align:middle}
+table.it tr.it-grp td{background:var(--s2);font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);padding:6px 9px}
+table.it td input{background:var(--s1);border:1px solid var(--b2);border-radius:5px;padding:4px 7px;color:var(--t1);font-family:'JetBrains Mono',monospace;font-size:11px;width:95px}
+table.it td input:focus{outline:none;border-color:var(--acc)}
+
+
+/* ═══ DETAIL ═══ */
+.detail-hdr{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.back-btn{font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--t2);background:none;border:1px solid var(--b1);border-radius:5px;padding:4px 10px;cursor:pointer}
+.back-btn:hover{border-color:var(--b2);color:var(--t1)}
+.detail-id{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:500;color:var(--acc)}
+.chain-toggle{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--t3);background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:5px;padding:6px 0}
+.chain-toggle:hover{color:var(--t2)}
+.chain-body{display:none;padding-top:8px;border-top:1px solid var(--b1);margin-top:4px}
+.chain-body.on{display:block}
+.chain-row{display:flex;justify-content:space-between;padding:4px 0;font-size:11px;font-family:'JetBrains Mono',monospace;border-bottom:1px solid var(--b1)}
+.chain-row:last-child{border-bottom:none}
+.ck{color:var(--t3)}.cv{color:var(--t1)}
+
+/* ═══ FC ═══ */
+.fc-head{font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--acc2);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.fc-head::after{content:'';flex:1;height:1px;background:var(--b2)}
+.divider{height:1px;background:var(--b1);margin:14px 0}
+
+/* ═══ EMPTY ═══ */
+.empty-state{text-align:center;padding:48px 20px;color:var(--t3)}
+.empty-icon{font-size:28px;margin-bottom:10px;opacity:.4}
+.empty-title{font-size:13px;color:var(--t2);margin-bottom:3px}
+.empty-sub{font-size:11px;font-family:'JetBrains Mono',monospace}
+
+/* ═══ TARGET MARGIN CONTROL ═══ */
+.margin-ctrl{display:flex;align-items:center;gap:8px;background:var(--s2);border:1px solid var(--b1);border-radius:6px;padding:8px 12px;margin-bottom:10px;flex-wrap:wrap}
+.margin-ctrl label{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--t3)}
+.margin-ctrl input{width:70px;background:var(--s1);border:1px solid var(--b2);border-radius:5px;padding:4px 8px;color:var(--t1);font-family:'JetBrains Mono',monospace;font-size:12px;text-align:center}
+.margin-ctrl input:focus{outline:none;border-color:var(--acc)}
+
+@media(max-width:800px){.g4{grid-template-columns:1fr 1fr}}
+.stats-view canvas { max-height: 380px; }
+.stats-view { animation: fadeIn .15s ease; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none} }
+
+/* ═══ MOBILE ═══ */
+@media(max-width:600px){
+  html{font-size:12px}
+
+  /* Topbar */
+  .topbar{height:52px;padding:0 12px;gap:6px}
+  .logo img{height:24px !important}
+  .tabs{display:none}
+  .tabs.mob-open{
+    display:flex;flex-direction:column;gap:2px;
+    position:fixed;top:52px;left:0;right:0;z-index:200;
+    background:var(--s1);border-bottom:1px solid var(--b1);
+    padding:8px 12px;box-shadow:var(--shadow)
+  }
+  .tabs.mob-open .tab{padding:10px 12px;font-size:13px;border-radius:6px;text-align:left}
+  .rate-wrap input{width:48px;font-size:11px}
+  .rate-wrap span{display:none}
+  .mob-menu-btn{
+    display:flex;align-items:center;justify-content:center;
+    background:var(--s2);border:1px solid var(--b2);border-radius:6px;
+    width:34px;height:34px;cursor:pointer;font-size:18px;flex-shrink:0
+  }
+  .mob-active-tab{
+    font-size:12px;font-weight:600;color:var(--t1);
+    font-family:'Epilogue',sans-serif;white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis;max-width:120px
+  }
+
+  /* Bottom nav */
+  .mob-nav{
+    display:flex;position:fixed;bottom:0;left:0;right:0;z-index:150;
+    background:var(--s1);border-top:1px solid var(--b1);
+    box-shadow:0 -2px 8px rgba(0,0,0,.2)
+  }
+  .mob-nav-btn{
+    flex:1;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;padding:6px 2px;gap:3px;
+    font-size:9px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
+    color:var(--t3);background:none;border:none;cursor:pointer;
+    transition:color .15s;font-family:'Epilogue',sans-serif
+  }
+  .mob-nav-btn .nav-icon{font-size:16px;line-height:1}
+  .mob-nav-btn.on{color:var(--acc)}
+
+  /* Pane sizing — account for topbar (52px) + bottom nav (58px) */
+  .body{overflow:visible}
+  .pane{
+    height:auto;min-height:calc(100vh - 52px - 58px);
+    padding:12px 12px 70px;overflow-y:visible
+  }
+
+  /* Grids */
+  .g2,.g3,.g4{grid-template-columns:1fr 1fr;gap:8px}
+  .g3.stack-mob{grid-template-columns:1fr}
+
+  /* Summary bar */
+  .summary-bar{gap:10px;padding:8px 10px;overflow-x:auto;flex-wrap:nowrap}
+  .sb-sep{display:none}
+
+  /* Filter bar */
+  .filter-bar{gap:4px}
+  .filter-bar .fsearch{width:100%;flex:1 1 100%;order:-1;margin-bottom:2px}
+  .filter-btn{padding:4px 8px;font-size:10px}
+
+  /* Lot table */
+  .lot-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table.lt th,table.lt td{padding:5px 7px;font-size:11px}
+
+  /* Metrics */
+  .metric{padding:9px 10px}
+  .m-val{font-size:14px}
+
+  /* Cards */
+  .card-inner{padding:10px 12px}
+
+  /* Detail header */
+  .detail-hdr{flex-direction:column;align-items:flex-start;gap:6px}
+  .detail-id{font-size:15px}
+
+  /* Stats views */
+  .stats-view canvas{max-height:260px !important}
+  #stats-views-nav{flex-wrap:wrap;gap:4px}
+
+  /* Movers grid */
+  #movers-grid{grid-template-columns:1fr !important}
+
+  /* Import table */
+  table.it th,table.it td{padding:4px 7px;font-size:11px}
+  table.it td input{width:80px}
+
+  /* Import drop zone */
+  .multi-drop{padding:16px}
+
+  /* Buttons */
+  .btn{padding:8px 12px;font-size:11px}
+
+  /* Fields */
+  .field input,.field select{font-size:12px;padding:7px 9px}
+}
+
+/* Desktop — hide mobile-only elements */
+@media(min-width:601px){
+  .mob-menu-btn{display:none}
+  .mob-active-tab{display:none}
+  .mob-nav{display:none}
+}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo" style="gap:0;padding:0">
+    <img src="data:image/png;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCAGbA+gDASIAAhEBAxEB/8QAHQABAAEFAQEBAAAAAAAAAAAAAAgEBQYHCQMCAf/EAFgQAAEDAwEDBAoKDggGAwADAAABAgMEBQYRByExEkFRYQgTFCJxc4GRobEJFTJCUnKSwdHSFhcYIzM1OENTVmKCk7I0VVeUlaKztCRUY3XC4SU2N0RF8P/EABsBAQACAwEBAAAAAAAAAAAAAAAFBgMEBwIB/8QAPBEAAgECAgcGBQIEBwEBAQAAAAECAwQFEQYhMUFxkdESMlFhgaEiM7HB4RPwI0JSkhQVFkNTYvGCcqL/2gAMAwEAAhEDEQA/AIZAAAAAAAAAAAAAAAAAAAAAAHpBDNUStigifLI5dGtY1VVfIgSzPjaSzZ5gzvHdluSXPky1bGW2Bd+s29/yU+fQ2JYdlON2/kyVqTXGVOPbXclnyU+dVJa2wS7uNfZ7K89X5K/faUYdaZrt9p+Edfvs9zQ1JS1VXKkVLTyzvX3sbFcvoMqtOzbLbho5bd3IxffVD0Z6OPoJCUFBQ0ESRUVJBTMT3sUaNT0FSTtDRiktdWbfDUVW605ry1W9NLjr6fc07bNjEq6OuV6Y3pbBFr6V+gyOg2S4rAid0d2VTk48uXkovkboZ+CVpYNZU9lNPjr+pAV9JcTrbarXDJfQxukwXEqVE7XY6VVTneivX0qpdaey2inRO02uij04cmBqL6ivBuwtqMO7BL0RGVLy4q9+o3xbPiOKKP8ABxMZzd61EPsAzZZGs3ntPxyI5NHIiovMpTzW+gm17dRU0mvHlxNX1oVIPjintR9jKUdjLLVYnjVVr2+x0DteiFE9RZ63Zlh9Trpbn06rzwzOT0KqoZkDXnZW9TvQT9EblLE7yj3Ksl6s1bcdjVsk1Wgu1TAvMkrEeno0MXuuyPJKVFdRy0la1OCNfyHeZfpN9A0KuA2VTZHLgyXt9LMTo7Z9peaX4fuRXu2O3y0qvthaqqnRPfOjVW+dNxaiXjmtc1WuajkXiioY5fcGxi8cp1Ta4o5XfnYPvbvRuXykPcaMSWujP0fVdCxWmnUXquaWXnHo+pGYG2Mh2O1MfKlsdxbMnFIahOS7wI5N3oQ11fLDeLLN2q52+enXmc5ver4HcFIG5w+5tfmQyXju5ltscYsr75FRN+Gx8mWwAGkSYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP1EVVRERVVeCIAfh70FHV19S2moqeWomeujWRtVyqZ5hOy+6XdGVl2V1vo13o1U++vTqTmTrU3LjuPWiwUqU9ro2Qpp3z+L3+F3FSdsMBr3OUqnwx9+RVMW0stbLOnR+OflsXF9DVWJ7IqyoRlRkFR3LGu/ueJUV6+FeCek2pYMcstihSO2UEMC6aLJpq93hcu8uwLfaYZbWi/hx1+L2nOsRxy9xB/xZ/D4LUvz6gAG+RIAAAAAAAAAAAAAAAAAAAAAAAAPKpp4KqF0FTDHNE5NHMe1HIvkU9QGk9TCbTzRrrKtlFmuKPntD1ttQu9GJ30Sr4OKeTzGpMnxK+47IqXGjckOujZ4++jd5ebykoD4niinidDNGySN6aOa9NUVOtCDvcBtrj4ofDLy2ci04Zpbe2eUar7cfPb6PrmRFBu/NNlFDXI+rx97aKo4rA78E5er4PqNPXq03GzVrqO5UslPM3mcm5U6UXnQp97htezf8RavFbDo+GY1aYlHOjL4t6e398ChABoEsAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAetJTzVVTHTU8bpZpXIxjGpqrlXghvnZ1s6orFFHX3RjKq5qmqapqyHqTpXrMH2BUEFTldRVTNRz6WnV0aLzOVUTXza+c3uW/R7Dacof4mos3nq8vM51phjVaFX/BUnksvi8893D6gAFsOfAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAtWTWC2ZDb3Udyp2yN07x6bnxr0tXmLqDzOEakXGSzTPdKrOjNTpvJrY0RazGw1GOX+e11DuXyO+jf8ADYvBSzmf7d62GqzZIYXI5aambFIqfC1V2npQwA5hfUoUbicIbEzumFV6lxZ0qtXvNJv9+YABqm+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADamybZ73Z2q+32H/AIb3VPTuT8J+05OjoTnNqzs6l3VVOmvwaGI4jQw6g61Z6ty3t+CMatGNMt+PuyjIY1bS7ko6Vdzql68NehnP1mKVErp53zPRqOe5XKjU0RPAnMZ9t0vK1uUMtUS6U9vjRvJThy1TVfRohr0yX8adKo6NPZHVn4vf+DDhM61eirmttnrS3Jbl92+iMp2X5AzHcrhqZ3aUsydpnX4LVVN/kVEUklG9kkbZI3I5jkRWuRdUVOkiIbE2a7RprE1lru/Lnt2ujHpvfD9LeolsDxaNt/Bq917H4fgr+lWj9S9yubdZzSya8V5ea9zfIKW2XCiudGyroKmKogemqPY7VP8A0pVF2jJSWa2HL5RlBuMlk0AAfT4AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACmuVfRW2mdU19VDTQtTe+RyIh8clFZs+xjKb7MVmypMR2i5rRYvQOijeya5yN+8wouvJ/ad0J6zD812tJyX0eNRrrwWrlb/K3518xqWrqairqX1NVM+aaReU973aqq+ErOJ4/CCdO2eb8dy4eJeMD0Rq1ZKtersx/p3vj4L34CsqJquqlqqmR0k0r1e9y8VVeJ5AFMbbebOmJJLJF1xa0pfLuy1tmSGeZjkgVU71XomqIvQi6LvKO50FXbK6WhroHw1ETuS9jk/wD9uMt2K2yWvzmmqGovaqNrpnu5k3aInnU25tEwyjyq36pyYbhE37zPpx/Zd0p6ibtMIld2bqw7yby80VfENIoYfiSt6vcaWf8A1eb9sss+ZG0FVdrfWWq4S0FfA6Goido5rvWnShSkJKLi8ntLPCcZxUovNMAA+HoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGZbLsOkye7dtqWubbaZyLM7hy15mJ4efqM1vQncVFTprNs1ru7pWlGVaq8oovGyLBPbaVl7u0X/ARu1hicn4Zyc6/sp6TeTURrUa1ERETRETmPmnhip4GQQRtjijajWNamiNROCH2dHw+wp2VLsR2734nF8Xxaridd1Z6luXguviRZzSV8+XXaV66uWsl/mVC0GQbRaR1Fm93hcmiLUukb4Hd8nrMfOc3KarTT25v6nZ7GUZW1Nx2dlfQAAwG0XOwX67WKp7otdbLTu981F1a7wpwU2njO2CmkRsN/onQu4LPTpymr1q3ink1NMg37TErm0+XLV4biKxDBLLEF/Ghr8VqfPqSqs1/s15jR9tuNPUa+9a/vk8LV3lzIixSSRSJJFI6N7d6Oauip5TJrNtAyu1o1sV0fPGnvKhEkTzrv9JYrfSeD1VoZcOhTLzQaotdtUT8pavddESUBpu17ZqlqI252eOTpfBIrV8y6+sya37WMVqURKh1XSOX9JFqieVupL0sZsquyaXHUV240axOhtpN8Nf01mfAsNFmWLVmnaL5RKq8z5OQvmdoXenrKSoRFp6qCXX4EiO9RvwrU6ncknwZE1batS1VINcU0e4AMhhAAAAAAAAAAB5T1NPAms08USftvRPWG0toSb1I9QWatyrG6PXui90DFTm7cir5kLFX7UcQptUjrJqpU5oYXetdDWqXtvT780vVG9Rwy8rfLpSfozNganuO2elbqlvsssi8zp5UanmTUxe67V8pq+U2mfTULV/RR6qnldqR1bH7Knsk5cF1yJi30RxOt3oqK830zZv6R7I2K+R7WNTirl0RDF77tAxa08pstyZUSp+bpvvi+dN3pI+XS9Xe6OV1wuVVU680kiqnm4FvIi40nm9VGGXHoWK00Gpx13NRvyWr3fQ2lkO2GvnR0VkoY6Vq7klmXlv8icE9Jrq73a5XeoWouVbNVScyyO1RPAnBPIUQIC5v7i6f8WWflu5FtscJs7FfwKaT8dr5vWAAahIg9qKlqK2ripKWJ808rkaxjU1VVPey2qvvFeyht1M+ed/M1NyJ0qvMhv3ZzglHi8CVM6tqLnI3R8um6NPgt+nnJPDcMq3s9WqO9/veQeNY7Qwunr1zeyP3fgir2b4rHi1iSB/JfWz6PqXp08zU6kMoAOh0aMKFNU4LJI45c3NS6qyrVXnKWtmIbSsLpsptyywo2K5Qt+8y/CT4Dur1Ed62lqKKrlpKqJ0U8Tla9jk0VFQlua92u4S2+UTrvbYkS5QN1e1qfh2JzfGTm8xAY5hP68XXpL4ltXj+S26LaQu1krW4fwPY/wCl9H7GhAfqoqKqKioqblRT8KQdSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAK2x22ou92prbSt1mqJEY3q6VXqRN5J/G7PSWKzU9so2aRxN0Ved7udy9aqaQ2EpEudt7YiK5KaRY9eZd3zakgC6aNW0FRlW3t5ehzLTe9qSuI238qWfFvp1AALOUY0x2QFjfHX0t/hYqxytSCdU5nJ7lfKm7yGqSV2QWqlvdnqLZWN5UUzdNedq8yp1opGbKbFW47eJbdXMVHMXVj0TvZG8zkKNpBYOjW/Xivhl7P8nVND8WjcWytZv44bPNfjZyLUACulyAAAAAAAAAB9Mkez3D3N8C6HyAMsyvp7zd6fTtF1rotPgTuT5yvhzHKYfwd+rk8Mqr6ywgyxr1Y92TXqa87ShU78E+KRlEe0DMGaaXud2nwkavzHszaTmLdf8A5ZV8MTF+YxEGVX1ytlSXNmB4VYy20Y/2roZh9svMv61T+Cz6D8dtKzJyae22nghYnzGIA9f5hdf8kubPP+UWH/DH+1dDKZNoWYP43uZvxWtT5ilmzTK5fd36u8kmnqLADw7y4ltqPmzJHDbOPdpR/tXQuM99vdR+Gu9fInQ6ocqesoZJpZFVZJXvVfhOVT4BglOUtrzNmFKEO7FIAA8mQAAAAAAA/WtVzka1FVV4IicTMsW2cZHe1bLJB3BSrv7bUJoqp1N4r6DNQt6teXZpxbZrXV5QtIduvNRXmYYiKq6JvUzrCtmt4vqsqa1rrfQrv5cje/en7LfnU2piWz3H7ByJu0921jd/b50RdF/ZbwT1mXlpsdG8sp3L9F9305lDxXTVtOnZLL/s/suvItOM49asdoUpbZTNjRfdyLvfIvSql2ALVTpxpxUYLJIoNWrOtNzqPNvewAD0eAAADRO2/F2Wq7svNHGjaWtcvbGom5kvFfPx85rgkttRt7Llgtzjc3V0UXb2dSs3+rUjSc/x60jb3WcdktfU6/oniEryxUZvOUHl6bunoAAQhZwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAC+YJdksmWUFxeukTJeTL8R25fQupKBjmvY17HI5rk1RU4KhEM3hsVzFlfQsx64SolXTt0p3OX8KxObwp6iz6OX0ac3bzfe1rj+Si6aYVKtTjd01m46nw8fQ2aAC6HMwWLM8Xt2UW1aWtZyZW6rDO1O+jX506i+g8VaUKsHCazTMtCvUoVFUpPKS2MjBmGKXbGKxYq6FXQOX71UMTVj08PMvUpYSW9bSU1bTPpquCOeF6aOZI3VFNY5ZsipahX1GPVPcr139zzKqsXwLxT0lNv9HakG5W+teG/8nSMJ0yo1Uqd58MvHc+n04GlgXq/Ytf7G9UuNtnjYn51reUxf3k3FlK5Upzpy7M1k/MulKtTrR7dOSa8U8wADwZQAAAAAAAAAAAAAAAAAAAAACtoLTc696NorfVVCrw7XErvUZRatmGW12iyUcdGxeeokRPQmqmxStK9b5cG/Q07jELW2+dUUeLRhQNyWfY1Tt5Lrtd3yLzsp2clPOv0GaWXBcWtPJdT2qKSRv5yf74707iWoaO3dTv5RXn+CvXemWH0dVPOb8lkub6EfrLjV9vLkS3Wyonavv+Toz5S7jYGP7HauTky3u4sgbzxU6cp3yl3J6TcrWtY1GtajUTgiJoh+k7baOW1PXUbk+S/fqVa90zva+qilBc3zfQsGO4dj1hRHUFuj7cn56Tv3+deHkL+ATlOlClHswWS8iqV7irXn26snJ+LeYABkMQAAAAAAAABa8te1mLXV7/cpRy6/IUisSI20XVttwiohRyJLWuSBic+nFy+ZPSR3KTpNVUriMFuX1OoaD0JQtKlR7JS1eiAAK0XYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAH3DG+aZkUbVc97ka1E51XgNoby1s9XUczbe2uciJC+VYmqvFyoiKunUmqecpzNdqVC2y+0lhZ/wDxKLlydcj3Krl9CeYwoz3NH9Co6b2rbxy1mpY3P+Koqstjzy4Z6ua1g9KeaWmnZPBI6KWNyOY9q6K1U50PMGBPLWjaaTWTN87Ndo1Neo47ZeJGU9yROS2RdzJ/od1GxCIaKqKiouipwU2Pgu1GutSR0N7R9dRpubLr99jT/wAk8O8t2GaQLJU7nn16nPMc0Qebr2K4x6dOXgb1Bb7HerZe6RKq2VkdRGvHkr3zepU4oXAtcJxmu1F5o5/UpzpycJrJrcwAD0eT8e1r2q17Uc1eKKmqKY5ecFxa6q51RaYY5HcZIPvbvQZIDHVo06qyqRTXmZqFzWt5dqlNxfk8jVlz2NW2TlOt12qYF5mzMR6edNFMcrtj+RQqq0tXQ1KfGVi+lPnN7Ai6uA2VT+XLgydoaWYpR1Ofa4pf+kb6vZxmNOq62h0vipGu9SltnxLJoNe2WKvTTohVfUSiBpT0Yt33ZtciTp6c3i79OL5r7sijJZbxHr2y1VzNPhU70+Y8X2+vYujqGpavXE5PmJaDRDC9Fobqnt+TZWnlTfRX934Ildw1v/KVH8NT7S2XJURUt9WqLw+8u+gllonQB/paP/L7fk+vTyf/AAL+78EU2WK9vXRlnuDvBTPX5iqhxPJpfcWK4L4YVT1koge1ovS31HyMUtO6/wDLSXNkaoNn+YTLusdQ346tb61LhTbK8wl05dLTQp+3UN+bUkKDNHRq1W2TfLoa09N7+XdjFej6mj6TY3fH6d03Khh6eTyn/MheKPYxSJotZe5n9KRQo30qqm2AbUMBsYfyZ8WzQq6WYpU2VMuCXQwSg2U4nTaLLFVVSp+lm0RfI3QyC3YnjVvVFpbJRMcnByxI5fOuql7BvUrG2pdyml6EXXxW9r/Mqyfqz5jYyNqNjY1jU5mpoh9AG0aG0AAAAAAAAAAAAAAAAAAH45zWtVzlRrUTVVVdyIfqqiJqq6Iab2u7QG1DZcfsk2sS97VVDV910savR0qad9e07Ok6k/ReJJYXhdbEq6pUlxe5Ixfaxk6ZHkapTPVaGk1jg6HLrvf5fUiGHAHNrivO4qSqT2s7XaWtO0oRoU1qisi+YZYnZDcaigjVyStpZJYtOd7UTRF8PAsj2uY9WORUc1dFReZTbHY82tzqu43h7e8YxII16VVdV9SecxzbJYvafL5Z4mcmmrk7ezTgjl90nn3+U36uHuNhC5S3vPhuImhi8Z4tUsm9iWXHeuTXJmEgAiifAAAAAAAAAAAAAAAAAAAAAABKfYJ2Jjs3wqjyvK7/AFVqguDO20lLSxNWRYl4Pc525NeKJpwAIsAnf9xJg3635H8mH6g+4kwb9b8j+TD9QAggCd/3EmDfrfkfyYfqFoyzsJLU2zzyYvmFwdcWMV0UVfCxY5HJwarmoit16d4BCcFVdqCrtV0qrZXwugq6SZ8E8buLHtVUcnnQpQAAAADaHY37Iqva/mc1obcPa6gooO6K2pRnLc1qrojWpzqq+bRST6dhJg+m/L8i1+LD9QAggCd/3EmDfrfkfyYfqD7iTBv1vyP5MP1ACCAJ3/cSYN+t+R/Jh+oPuJMG/W/I/kw/UAIIAnf9xJg3635H8mH6g+4kwb9b8j+TD9QAggCd/wBxJg3635H8mH6g+4kwb9b8j+TD9QAggCd/3EmDfrfkfyYfqD7iTBv1vyP5MP1ACCAJ3/cSYN+t+R/Jh+oPuJMG/W/I/kw/UAIIAnf9xJg3635H8mH6g+4kwb9b8j+TD9QAggCQvZQ9jk3ZNYqTJLNe57paZqhKaZtTG1ssL1RVaurdzkXkrzJoR6AAAAAL3heKZDmV9ismM2qpuVdLwjhbryU+E5eDU613EutlPYX0ccMNftGvck0y6OW3W53JY3qdKu9f3UTwgEKirp7bcaj+j0FXNu17yFzvUh1TxHY/syxWNrbLhVnie1NO2ywJNIvhe/VfSZrT01PTxpHBBFExODWMRqJ5EAOPU1ou0LeXNa62NvDV9O5E9KFG9rmO5L2q1ehU0OyjmMc1WuY1UXiioY7kOBYTkMLor3idlr2u49uo2Kvn01AORYOg+0fsP9nd+iknxaarxmtVFVrWOWanVetjl1RPA4iDtk2K5zstq1W/W/t9sc7kw3Kl1fA/oRV4tXqdp5QDWwAAAAAALzhGOV+XZfasZtnISsuVSyniV6961XLxXqRNV8hM+g7CLEm0kaV+Z3ySp5KdsdDFExirz6IqKunlAILgnf8AcSYN+t+R/Jh+oPuJMG/W/I/kw/UAIIAnf9xJg3635H8mH6g+4kwb9b8j+TD9QAggCd/3EmDfrfkfyYfqD7iTBv1vyP5MP1ACCAJ3/cSYN+t+R/Jh+oPuJMG/W/I/kw/UAIIAnf8AcSYN+t+R/Jh+oPuJMG/W/I/kw/UAIIAnf9xJg3635H8mH6g+4kwb9b8j+TD9QAggCd/3EmDfrfkfyYfqD7iTBv1vyP5MP1ACCAJibVew3t9jwq43vE8nuFXW0ED6haWtjZyZWMTVyI5qJouiLpuUAEOzN9i9m9tczinkZyoKFvb3a8OVwann3+Qwg31sItHcWJvuMjNJa6VXIqp7xu5PTqpK4Lbf4i7insWt+n5IDSa+/wAHh02nrl8K9dvtmYTt9hWPM4ZVRdJaRip5Fchrs3P2QtrdJQW+7saqpC9YZF6EdvT0ovnNMDGqTp3s89+vmfdGa6rYZSa3LLkAARRPAAAFXa7lX2uqbVW+rlppm++jdpr4ek2fiu1+ViMp8ipO2Jw7ogTRfCrfoNSg3LS/uLR50pZeW7kRuIYRaYhHKvDN+Ox8yVNiyCzXyFJLZcIajdvYjtHt8LV3oXQiNTzzU8rZaeWSKRu9HscrVTyoZtj21HJbYjY6mSO4wp72dO/0+Mm/z6lntdJqctVeOXmtn75lGv8AQetDOVrPtLwep89n0JBg17YtrOO13JZXsnt0q8VenLZ50+dDN7bc7dcokloK6nqWLzxyI4n6F5QuF/Cmn+/AqN3ht3ZvKvTcfTVz2FWADZNIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHhW1dLQ07qisqIqeJu9XyPRqJ5z42ks2fYxcnklrPcpLrcaG1Ub6y4VMdPAxN7nrp5E6VNe5ZtbttG19PYYVrp+HbnorYk8HO70Goshv92v9WtTdKySd3vW66MZ1InBCBvtIKFBONL4pe3PoWzCtEbq7ancfBD3fpu9eRme0TaXVXlslusvbKWgXc+ThJKnzJ1GuQCl3V3Vup9uq82dNscPoWFJUqEcl7viCot1HUXCuhoqSNZJ5noxjU51U8Yo3yytiiY573qjWtamqqvQhvnZNgqWCnS63NjVucre9bx7Q1eb4y8/mNjDsPne1eyti2s08axelhlu5y1yexeL6LeZVhtjhx3HaW1xaOdG3lSvT37190pju2yy+2mHvq42az0Du3J08jg5PNv8hnR51UMdTTS08rUdHKxWORedFTRToNa0hUtnbpassuhyC2xCrSvY3becs835+PMiMCuv9vktV7rLbKio6nmdH4URdy+YoTmEouMnF7Ud0pzjUipx2PWAAeT2AAAAAAAAAAAAAAAAAAZHszxipzPP7Ji9Ki8u41jIXKnvWKur3eRqKvkOttsoqa222mt1HGkdNSwthiYnBrWoiInmQg57HThftjm13zepi1htMHctM5U3dul90qdaMRflE6wAAAAAADnT2eGF/YxtpkvNPFyKLIIEq2qibu3J3siedEd+8R9OinZ54X9kuxd97poeXW4/OlUiom9YXd7Inpa79051gAAAEtvY1v8A7hl3/b4f9RScRB32Nb/7hl3/AG+H/UUnEAAAAAAAAAAAAAAAAAAAAAAR19kJ/wDwKP8A71TfySnPE6HeyE//AIFH/wB6pv5JTniADNNjWzi/bT80p8cskfJRe/q6pyfe6aLXe93zJzqYbGx8kjY42q57lRrWomqqq8EOnXYq7LafZlsxpIKiBqXy5MbVXOTTvkeqati16GIunh1UAyfZDsyxbZhjUdmxyja16oi1VZIiLNUv+E93qTghmoAAAAAAAAKW722gu9sqLZdKOCtoqhixzQTMRzHtXiiopVAA52dltsAl2aXBcmxqOWfFauXkqxdXOoZF4McvOxfeqvgXm1j0dhcrsNsyfG6/H7xTNqKCvgdDNG5OKKnFOhU4ovShyi2r4dW4DtCvGJ12rn0FQrI5FTTtsa72PTwtVFAMXAABs7sVfyhsL/7i3+Vx1KOWvYq/lDYX/wBxb/K46lAAAAAAAAAAAAAAAAAAAAAAFnzj/wClXz/t1R/puAzj/wClXz/t1R/puAByDpYX1FTFTxJq+V6ManWq6IStstDHbbRSW+JNGU8LY08icSPWyW3pcM9tzHN1ZC5Z3J8VNU9OhJEuWjFDKnOq97y5HNdOrrtVqdutyzfrqX09y25NaYL5Yqu1z7mzxq1HfBdxRfIuhF660NTbLjPQVcasngerHovShLM1vtjwp14pfbu2Ra18DdJY2pvmYn/knqNnHsOdzTVWmvij7r8GloljMbKs7eq8oT9n+ehooH6qKi6KmiofhRDq4AAAAAAAAAPWmqJ6aVJaeaSGRODmOVq+dDyB9Ty1o+NJrJmX2faPllt5LfbFaqNPeVLUf6ePpMwtO2ZNzbpZvC+nk/8AFfpNQAkKGLXlHuzfrr+pD3Wj+HXOudJZ+K1fTIkXa9pmI1qIjq91I9fe1Eat9KaoZNQXW2V7UdRXClqEX9HKjlInH0x72O5THOavSi6ErS0nrR+ZBPhq6kBcaDW0tdGo48cn0Jdgi3b8pyOg07lvVaxE5llVyeZTIKHapl1NoklTTVSJ+lgT1t0JGnpNby78Wvcha+g97H5c4y5r7P6khAaYots9c3RKyy08nSscqt9epeaTbLZn6JU2quhX9hzXp8xvQxyxn/PlxTIurotilP8A2s+DT+5s4GDU21TEZtEfU1MKr8OBd3m1LnT57iE+nIvtM1V5no5vrQ24Yhaz2VFzRH1MIv6feoy5MyYFogybHZ/wV8tz/BUN+krY7lbpPwdfSv8ABM1fnM8a1OWyS5mpK3qw70WvRlUDzbUQP9zPG7wPRT7a5rvcqi+BTImmY2mtp+gAHwA+XPY1dFc1PCp5uq6VnuqmFvhkRD42ltPqi3sR7AoJ71Z4Pw11oo/jTtT5y31GZ4pBr2y/0G74MqO9WpjlcUo96SXqjPC0uKncg3wTL+DDKvadh8Gulwkm8XC5fWiFmrdsdjj1SkttdUL0u5LE9a+o1Z4pZw21F9fob1LAcSq92jL1WX1yNmA0pcNstzfqlDaaWFOZZXq9fRoY3c9o2X1yKjrotO1fewMRnp4+k0KukdnDu5y9OpLUNDMRqd/KPF9MyRNVVU1LGslVURQMT30j0anpMTvW0rFLajmtrlrZU95TN5X+bh6SPlZW1lZIslXVT1D199JIrl9JTkVX0nqy1UoJcdfQn7XQahHXcVHLyWrr9jZ9/wBsF0qEdHZ6GKiYvCSVe2P83BPSa+vF4ul3n7dc66eqfzdsfqieBOCFCCCub+4ufmzb+nItVlhNnYr+BTSfjv5vWAAahIgq7Vbq2610dFb6aSonkXRGsT0r0J1mW4Xs3vN+VlTVtdb6Fd/bJG9+9P2W/Opu3F8btOOUfc9spkYqp38rt73r1r8xOYfgda6ylU+GPu+BVsY0ptrFOnS+OfhuXF/ZexjezjZ5SY61lfcORVXNU1RdNWQ9TeleszwAvFtbUramqdNZI5Ze3te9qutXlm3+8kAAZzVNDberalJl0VcxujK2BHKv7Tdy+jQ12bv7IWjSTHqCtRN8NSrFXqc1fqmkDnON0f0r2aW/Xz/J2bRe5dfDKbe1auWz2yAAIosAAAAAAAAAAAAAAAAAM82AYc/O9r2PY5yHOp5apstXonCCPv3+hNPKAdA+xKwv7CNh1jo5ou111fH7YVaKm/ly6KiL4G8lPIbZPmNjI42xxtRrGojWtRNyInBD6AABrTINqdDatvtg2ZvdHrcrdLPI9eLJtdYmeVrJPO0A2WAACivtspbzZa60V0aSUtbTvp5mqnFr2q1fQpyQz3HarEs0vGNVrVSe21klO7XnRrty+VNF8p18IEeyHYX7UbR7dmNNFyaa90/a53Im7t8SIm/rVit8ygEXgAASD7BzaRjWz/aDc4sprGUFFdqNsLKuTXtcUjXcpEcqcEXVd/MTb+3Fsr/tAx3+/M+k5QgA6vfbi2V/2gY7/fmfSPtxbK/7QMd/vzPpOUIAOr324tlf9oGO/wB+Z9I+3Fsr/tAx3+/M+k5QgA63Y/tIwLILrFarHl9muNfMjljp6eqa97kRFVdEReZEVTKjmp2Dv5SmO+Kq/wDbyHSsAAAAsOV5nieKPp2ZLkNttDqhHLClXO2PtiJprprx01Tzlj+3Fsr/ALQMd/vzPpIyeyW/jTCvEVf80ZDwA6vfbi2V/wBoGO/35n0j7cWyv+0DHf78z6TlCADq99uLZX/aBjv9+Z9I+3Fsr/tAx3+/M+k5QgAmh2dW13CMjwCiw/Gr1S3mtkr2Vc0lI/lxwsY1yIiuTcqqruCdBC8AA252IeIR5jt3sVJUxJJR0DnXCoaqaorYt7UXqV/JQ6eEHvY2LYyTLssu7maugoYadjtOHLerl/kQnCAAAAat7ITbTj2yKwxzVrO77zVovcNuY/kuk04vcvvWIvPz8EISZn2UO2DIauSSnyH2jplXVlPbomsRqfHVFcvnMb7JTLavM9tOSXSolc+GGsfSUjVXcyGJVY1E8Oir4VU1wAbVs3ZEbZbXWNqY86uNTouqx1aNmY7qVHJ6tCWPYx9k3SbRLjFimW01PbMhkT/hpolVIKxUTe1EX3L+rXReboOfJVWmvq7VdKW50MzoaqkmbNDI1dFa9qoqL50AOxwLLgd6TI8Kst/RERbhQw1KonBFexFX0qpegAQg9khxdlNkmN5fBEje7YJKKocicXxqjmKv7rlT90m+Rn9kVo45tjVsrHN1fTXiPkrpw5Ub0X1AHP8AAABl2xnJ6XDNqeOZRXRvkpbdXMlnaxNXcjg7Tr0VVOlVDtr2T1lJFVQ5/YUjlajkSSraxydStXRUXqU5TgA6vfbi2V/2gY7/AH5n0j7cWyv+0DHf78z6TlCADq99uLZX/aBjv9+Z9I+3Fsr/ALQMd/vzPpOUIAOr7dsOyxzkamf46qquiJ3cz6TOGOa9jXscjmuTVFTnQ420f9Lh8Y31nYq0/iqk8Qz+VACpAABQZBerTj9qlut8uNNbqGJUSSoqJEYxuq6Jqq9KroYp9uLZX/aBjv8AfmfSYZ2cH5N+QeNpv9dhzUAOr324tlf9oGO/35n0j7cWyv8AtAx3+/M+k5QgA6vfbi2V/wBoGO/35n0j7cWyv+0DHf78z6TlCADpdtk29bM7Ps7vLqLKrZdq+oo5YKWkopklfI97VamunBE11VVBzRABsfsf3RJl9Sj1TlrSO7X4eU3X0G9iK2KXiaw5BSXSHVVhfq9vwmrucnmJQ2ytp7jb4K6kkSSCdiPY5OhS76NXEZW7pb0/ZnLdNrOpC7jcfyyWXqtxUAAshSzVe1LZx3a6W9WCJEqF76emamiSdLm9fVzmmJGPjkdHI1zHtXRzXJoqKS7MLz7Z9bMla6qg5NHcdN0zW97J1PTn8PErGK4CqrdW31PevHgXnANLHbpW94847pb1x8V7kdgXbJMeu2PVi01zpXRKq95Im9j06UXnLSU6dOVOTjNZNHSaVWFaCnTeae9AAHgyAAAAAAAAAAAAAAAAAAAAAA/UVUXVF0PwAHo2aZvuZZE8DlPtKurThVTp4JFPAH3tNbzy4Re1FR3bWf8ANz/xFHdtZ/zc/wDEUpwfe3LxPn6cfA9lqqpV1WpmXwvU83SSO909y+FT5B8zbPSilsQAB8PoAAAAAAAKy12y4XSdILfRT1Ui80bFXTw9B9jFyeSWbPM5xgu1J5Ioz9RFVdETVVNlY7siu9XyZbxUx0ES71jZ38n0IbMxrBscsPJfS0LZqhPz8/fv8nMnkJq0wC6r65rsrz28v/Cs4hpbYWucab7cvLZz2cszS+K7PMivqsl7m7ipXfnqhFbqnU3ipt3EdnVgsHIndF3dWN39unRFRq/st4J6zMQWmywW2tfiy7UvF9Ch4npPfX+cc+xHwX3e1/TyAAJcroAAAAABgm3RqLgUirxbUxqnnUj6b17IGrbFilLSa99PVIunU1q/ShoooWkck7zJbkjrWhkHHDc3vk/sgACBLYAAAAAAAAAAAAAAACZnscOFr/8AP59VQ9Fuo3KngfKqf5E85DWNj5JGxxtVz3KiNaiaqqrzHVvYDhzME2RY9jnIRlRFStlqtE4zyd+/0rp5ADOwAAfMsjIonyyORjGNVznLwRE4qcttpO0uuuvZCVu0ShmdrTXZstFovCGJyIxPArW7/CpPLstszXCdht8rIZVjra9ntfSKi7+XLqiqngbyl8hzAAOxGM3ekv8AjtuvlA9H0tfTR1ESovvXtRU9ZcCO3YC5n9kWxtbBUSq+rx+oWn0Vd/aX6vj8id8390kSADTfZj4X9mWwy7tgi7ZXWlEuNNomqr2v3aJ4WK70G5D4qIYqiCSCZjZIpGqx7XJqjmqmiooBxqBmW2vEJcF2p3/GHsc2Okq3dzqvvoXd9GvyVQw0AAAAAAAAAA3b2Dv5SmO+Kq/9vIdKzmp2Dv5SmO+Kq/8AbyHSsAAAAhV7Jb+NMK8RV/zRkPCYfslv40wrxFX/ADRkPAAAAAAAAAACZXsacsfbczh5X3zk0ztOrv0JnHPj2PbJI7RtmqrLPIjI71b3xM155Y1R7U8yPOg4AAAByS2wWaox/ank9nqWK2Smuk7d/O1XqrV8CoqL5TFCY3sgmyqdKyHahZqZXwva2mu7WN9w5N0cq9Sp3qr1N6SHIAPSmhlqKiOngY6SWV6MYxqaq5yroiJ5T4aiucjWoqqq6Iic5MnsN+x1roLlR7Rc7onU6Q6S2q3TN0ervezSIvDTi1q7+deYAlZsys02PbO8esdRr26htsEEmvM5rERU8+pkQAAIy+yLV0cGx21ULnaPqrwxWprx5Eb1X1kmiB/siuYxXTPrPiFLNy2WamdNUoi7kml0VEXrRjU+UARXAAAAAAAAAAAB60f9Lh8Y31nYq0/iqk8Qz+VDjrR/0uHxjfWdirT+KqTxDP5UAKkAAGkuzg/JvyDxtN/rsOah0r7OD8m/IPG03+uw5qAAAAAAAAAAA2NsgzdLJUpZrpLpb5nfe5FX8C9f/FfQa5BsWt1Utaqq09qNO/saN/QlQqrU/Z+KJeNVHNRzVRUVNUVOc/TRuzDaM+09rtF8kfJQ7mxTrvdD1L0t9Ru6nmhqIGTwSslienKY9i6o5OlFOi2GIUr2n2obd68DjWLYRXwyr2Kq1PY9z/PkegAN4iimuVBR3KkfSV9NFUQPTeyRuqGq8u2Qtcr6nHKjk8/cs67v3XfT5zboNO7sKF2sqsfXeSWH4vd4fLOhPJeG5+n7ZFC8Wi52epWnudFNSyJwR7dEXwLwXyFCS1uFDR3CndT11LDUxO4skYjk9Jr/ACPZHZa1XS2meW3Sr7xe/j8y7085VrvRutDXQfaXg9T6F9w/Ta3q5Ruo9h+K1rqvc0UDMb9s3ym1cp6USVsKe/pl5W74vH0GJTwywSLHNE+J6cWvaqKnkUr9a2q0HlUi1xLdbXlvdR7VGakvJnmADCbIAAAAAAAAAAAAAAAAAAAAAAAAAAABW2+03S4PRtDbqqoVf0cSuQym1bL8trtHSUkVGxeeeREXzJqpsUbSvW+XBv0NO4xC1tvnVFHi0YSDclp2M07VR11u8knSynYjfSuvqMws+AYpbNHRWqOeRPf1C9sX07vQS1DR27qd/KPH8FfutMsPo6qec35LJe+RHq12e63SRGW631NUq/o41VPPwM1seyTIazkvuEtPb414o5eW/wAybvSb2hiihYkcUbI2Jwa1uiIfZM2+jVCGurJy9l19ytXem93U1UIKC5vp7GBWLZVjNvVslW2a4yp+mdoz5KfPqZtRUlLRQpDR00VPGnBsbEanoPcE5QtKFusqUUirXeIXV4869Ry4vVy2AAGwaYAAAAAAAAAALBnmRQYzj81dIrVncnIp419+9eHkTip4q1Y0oOc3kkZaFCdxUjSprOTeSNR7dby24ZUy3xP5UVBHyHaLu5bt7vmTyGvT0qp5ampkqJ3q+WV6ve5eKqq6qp5nL7u4dzWlVe9ndcPs42VrChH+Ve+/3AANc3AAAAAAAAAAAAAAADbPYlYX9m23Gx0c0PbKGgk9sKvVN3Ii0VEXwu5KeU6fkU/Y6cL9rsJu+bVMWk92n7lpnKm/tMXulTqV6r8klYAADxr6qChoZ62qkSOCnjdLK9eDWtTVV8yAEHPZGMz7vzKzYRTS6w2uBauqai/npfcovWjE1/eIoGT7VMpnzXaLfcoqHKq3CsfJGir7mPXRjfI1EQxgAkD2B+ZfY1tshs88vJo8ggWjdqu7tqd9GvnRW/vHRc46WK5VVmvVFdqJ6x1NFUMnicnM5jkcnqOuOCZBS5XhlnySjciwXGjjqG6LwVzUVU8i6p5AC9AAAhR7I7hfabpYc9pYu9qWLb6xyJ75uro1Xwpy0/dIfHVPsksMTO9jGQWNkSPq2061VH0pNF37dPDorfKcrXNVrla5FRUXRUXmAPwAAAAAAAAG7ewd/KUx3xVX/t5DpWc1Owd/KUx3xVX/ALeQ6VgAAAEKvZLfxphXiKv+aMh4TD9kt/GmFeIq/wCaMh4AAAAAAAAAAXrBMirMSzK0ZNQLpU22rjqGJ8Lkrvb4FTVPKdacQv1vyjF7bkNqlSWiuFMyoici67nJrovWnBetDj4S+7Aba/Hb6p2zDIKpGQVL1ls8sjtzZF3uh1X4XFOvVOcAm0AAClu9uobva6m13KmjqqOqidFPDImrXscmioqHP7ar2Kub23aclnwq3SXKxXByy0lW92jKVmu9kzl4K3Xcvvk4b9ToWACP+wLsYcU2eup71f1jyDImaObLIz/h6Z3/AE2LxVPhO39CISAAAABjm0TNscwHGajIMmuEdHSRJ3qKur5nczGN4ucvQAUW2HP7Ps1wSvye7yN+8sVtNBr31RMqd4xvhXj0Iiqcq8svtxyfJbjkN2mWauuFQ+eZ37Tl10TqTgnUhnPZCbYL5tbyxa+s5VJaKVXNt1AjtWxMX3zul686+RDWQAAAAAAAAAAAAB60f9Lh8Y31nYq0/iqk8Qz+VDjrR/0uHxjfWdirT+KqTxDP5UAKkAAGkuzg/JvyDxtN/rsOah0r7OD8m/IPG03+uw5qAAAAAAAAAAAFRcqOe3181FUt5M0L1Y9Ospz604vJnyMlJKS2MGWYLnN1xeVImOWqoFXV9M9dydbV5lMTBko16lCanTeTRgubWjdU3SrR7UWSixTKbPklKk1uqUWRE1kgfukZ4U+cvZEmhq6mhqmVNHPJBMxdWvjdoqG08O2uSRoylySFZG8Eqom99+83n8KeYuNhpFTqZQuPhfju/BzfFtDa1BupZ/FHw3rr9TcYKO0XW3XalSqttZDUxL76N2unhTinlKwskZKSzi80UucJQk4yWTQAB9PIKG6Wi13RnIuNvpqpP+pGir5yuB8lGMllJZo9QnKm+1F5PyMBu+yjF6xVdSpU0D1/RScpvmdqYnc9jVxj1W3XannTmbMxWL6NTdQIytgtlV2wy4aibttJsTt9Sqtrz1/XX7kcLhs4y+j1VbU6dqe+ge1+vk119Bj9ZZ7tRqqVdsrIdOKvhciefQlefioipoqIpG1NGKL7k2uOvoTdHTq5j82nF8M11IiKipxRUPwljVWq11WvdNupJted8LV+YtVRhOKVGqyWGi1Xnazkr6DSnovVXdqJ+mXUk6endB9+k1wafQjGCRs2zTDZdV9qeQv7Ez0+cppNlWIO10p6pmvwahd3nMD0au1sceb6G1HTbD3tjJei6kewSA+1NiXwK7+P/wCh9qbEvgV38f8A9Hn/AE3eeXP8Hv8A1phv/bl+SP4JCx7K8PbxpKl/xqh3zFVDs3w2LhZ2u+PM93rU9LRq7e1x5voeJab4etkZP0XUjgfqIq8E1JO0+F4rAusdhoUXpWPX1lyp7RaqfTtFso4tPgQNT5jPHReq+9UXL/w1amndBdyk3xaXUizTW+vqVTuaiqZtf0cTnepC70eE5XV6LDY6zRed7OQnp0JNta1qaNaieBD9NuGi9Jd+o3wWXUj6undd/LpJcW30I/0OyfLJ9FmjpKVF49smRVT5OpfqDYxKqotfe2NTnSGFV9Kr8xuIG7T0esobU3xfTIjK2mGJ1O7JR4Lrma/t2yXF6fRah1ZVqnw5OSi+RqIZJbcRxm3aLSWWjY5ODnR8t3ndqpfASFKwtqXcppehD18Wvrj5lWT9Xly2HzGxkbUZGxrGpwRqaIfQBtkeAAAAAAAAAAAAAAAAAAACy5Zk9pxqhWouM6ctU+9wt3vkXqT5zxUqQpRc5vJIyUaNSvNU6azb3Irb3dKKzW2W4XCZsMESaqq8VXmRE51UjhnmUVWU3l1XLrHTR6tp4ddzG/SvOfub5dcspru21Tu1UzF+807V71nWvSvWY6UTGMYd4/06eqC9zq+jmjiw6P61bXUft5cfF/ti9ZTZlszbZG9jmy1FEyeTXpcq/NoXTZZi8mSZDGssa9wUqpJUO03L0M8vq1Lzt/REyylRE0RKRuifvKacLNqylcSW9JfckauJReJ07OD3Ny5al9+RrgAEcTQAAAAAAAAAAAAKm10VRcrnS26jjWSoqpmQxMTi57lRETzqUxvnsGsL+yrbfSXKoi5dDYYlrpNU3LJ7mJPlLr+6AT92Z4xTYZgFkxelREZbqNkLlT3z0TV7vK5VXymRAAA0h2bOZ/YlsLuNNBL2utvb0t8Gi7+S7fIqfuIqeU3eQA9kJzP262pUeKU0vKprDTJ21EXd2+XRzvKjeQnnAIzAAAE/PY9Mz9udmFdidRLyqmxVPKiRV39ol1cnkRyPTyoQDN3dhRmf2JbdLbTzypHRXtq26fVdE5TtFjX5aNTygHSoAABd6aKcteyiwv7Bdtl/tMUXa6Kom7to0RN3ape+RE8C8pvkOpREj2RrC+68bsed00WslBKtDVuRPzb97FXwORU/eAIPAAAAAAAAA3b2Dv5SmO+Kq/8AbyHSs5qdg7+Upjviqv8A28h0rAAAAIVeyW/jTCvEVf8ANGQ8Jh+yW/jTCvEVf80ZDwAAAAAAAAH6xrnvaxjVc5y6IiJqqr0AH4bY2E7EM/2k3GC4WSF9qtkMqOW7z6sYxyLrrHzvcnVw51Q3b2MfYqpVRUuW7TqV7YnaSUlmduVycUdN0J+x5+gmbRUtNQ0kVHR08VPTwtRkcUTEaxjU4IiJuRACnx6kraCxUNFcbi+5VkEDI5qt8aMWdyJor1am5FUrgAAAAAAeNdSwVtFPR1LOXBPG6KRuqpymuTRU1TqUA0nt17JXCtnMc9ttsseQZC1FalJTyaxwu/6r03J8VNV8BAjantHyzaVkDrxlFyfUORVSCnb3sNO34LG8E8PFedTYHZUbDLhssyF1ztjJqvFq6VVpZ11c6ncu/tUi9PQvOnWaQAAB+sa570Yxquc5dERE1VVAPe3UNbcaptJb6OorKh/uYoIlke7wIiamRJs42gKmv2E5F/h0v1ToF2I+yOk2b7O6WtuFFGmS3SNJ66Vze/iau9sKLzI1NNevU3YAckftb7Qf1JyL/DpfqnxPs9zyCF802GZAyNiauctul0ROn3J1xKe5VlLbrfUV9dOyClponSzSvXRrGNTVVXwIgBxwVFRVRUVFTcqKfhk21W92/JNpOQ361UraWhrrhLNTxtbydGK5dF05lXj5TGQAAAD1o/6XD4xvrOxVp/FVJ4hn8qHHWj/pcPjG+s7FWn8VUniGfyoAVIAANJdnB+TfkHjab/XYc1DpX2cH5N+QeNpv9dhzUAAAAAAAAAANh7a7M6mudFe42/ea+BvLVE3JI1qa+dNPSa8JIXeyxZVs5p6NdElfSRyQPX3siNTT6PKR0qoJaWpkpp43RyxOVj2qm9FTcqE1jdo6NZVV3Z6/Xf1KzoviKubZ0JP4qby9N3T0PIAEKWYAAAq7Xcq+11Lam3Vc1NKnvo3aefpNlYxtgq4UbDf6NKlibu3wd6/yt4L6DVQNu1v7i1edKWXlu5Edf4TaX6yrwTfjv5kocfyzH76xPa+4wvkVPwT15Mifur8xfCIbXOY5HNcrXJvRUXRUMqsG0LKLPyWR3B1VCn5qpTlpp1LxTzlltdJovVXh6roUq+0Gks5WtTPyl1XQkkDVlj2x2+bksvFulpnc8kC8tvmXenpM5s2V49d0TuC7U0j19453Jf5l0UnrfEbW4+XNcNj5MqV3g19Z/OpNLx2rmtRegE38AbpGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAtN8ySx2RiuuVyggcia8jlavX91N55nUjTXam8l5mSlSqVpdinFt+C1l2PCuq6WhpnVNZURU8LE1c+RyNRPOapyXbE1EdDYKBVXgk9T8zU+dTWV+v13vlR266V0tQuvetVdGt8CJuQgbzSK3paqXxP2LZh2ht5cNSuPgjzfLd68jamZ7WqeFH0mNx9uk4LVSN7xPit5/KahudfWXOsfWV9TJUTvXVz3u1UpgVG8xCveSzqPV4bjoWG4PaYbHKhHXvb2v1/aBd8Ux+4ZHdo6CgjVVXfJIqd7G3nVVKzCcQumU1qMpWLFSsX79UuTvW9SdK9RIPFcetuN2xtDbotE4ySO93I7pVTewrB53klOeqH14dSLx/SOlh0XSpfFUe7w830PrFbFRY7Z4rbQs71u971TvpHc7lNObf365jAzT3NI3+Zxvgj7t0kSTPZWp+bp42+hV+cn9IIxpWKhFZLNIqOiE518VdSbzeTbfIwQAFFOrAAAAAAAAAAAAA6GdgHhf2PbH5MiqYeRV5BULMiqm/tDNWx+RV5a+UgThtiq8nyy1Y9QtV1RcauOmZpzK5yJr5E3+Q65YzaKTH8dt1joGIyloKaOmiRE071jUanqALgAAChyC6UtksVfea6RI6Whp31Erl5msarl9RyNza/wBXlOX3bI65yuqLjVyVD9eblOVUTyJonkOmXZOY/mOWbJbhjGFU8MtfcpGQzrLOkSNg15T968ddETToVSGH3JG2b+q7V/iLADQgN9/ckbZv6rtX+IsH3JG2b+q7V/iLADQh70FVPQ10FbSyLHPTyNlienFrmrqi+dDen3JG2b+q7V/iLB9yRtm/qu1f4iwAnvsqyiDNNnViyiByKlwoo5ZET3smmj2+RyKhkxpXsQcMzvZ/s+q8WzWmp4mwVizUDoahsqdremrmrpw0cir+8bqABiu13FIc32a37F5moq11G9kKqmvJlRNWO8jkQyoAHG2sppqOsmpKmNY54JHRyMXi1zV0VPOh4m7uzVwv7ENudyngh7XQ3tqXGDRNE5Tt0iJ++ir5TSIAAAAAABu3sHfylMd8VV/7eQ6VnNTsHfylMd8VV/7eQ6VgAAAEKvZLfxphXiKv+aMh4TD9kt/GmFeIq/5oyHgAAAAAAAJndhBsHhdT0203MKJJHP7+zUczdURP07kX/L5+gj12Nuz120raza7BMxy26Ny1VwcnNAzeqfvLo3ynUukp4KSlipaaJkMELEjjjYmjWtRNERE6EQA9AAADyrKmno6WWqq54qeniar5JZXo1rGpxVVXciFl2gZhYcFxWryTI6xtLQUrdVXi6Ry8GNTncq8EOdHZA7fcr2qXGWkbLLasbY9e0W2J/u0Tg6VU927q4JzdIBOTEdvmzTKtocuE2W9dvrWsVYahW8mnqHpxZG9fdO5+Gi82ptI420dTUUVXDV0k8kFRC9JIpY3clzHIuqKipwVFOhfYj7fqfaNao8Xyaojhyukj3PcqNSvYnv2/tonuk8qc+gEhwAAWzKrBaMox+ssN+oYq23VkaxzQyJqip0p0KnFF5lOafZJbGLvskypY9JavH6x6rbq5U4px7W/oenpTenV0/LDn+IWLOcVrMayKjbVUNUzRU99G7me1eZyLvRQDkKSF7B7ZZ9m+0X7JbrTcux2B7ZXI9vezVPGNnXp7pfAnSYZte2J5Xge0umxFtLLXx3SdI7RVMZ3tUjnaIi9Dk1TlJzceB0Q2IYBQ7NNm9sxekRjpoWdsrJkTfNO7e93n3J1IgBmwAABE7s/9qvtRYIdmtmqdK25MSa5uY7fHT697GvW9U1XqTrJH7ScuteCYTdMqu8iNpqCFX8nXRZH8GsTrcuieU5SZ3k90zLL7lk14lWStuE7pX79zU5mp1ImiJ4ACyAAAAAA9aP8ApcPjG+s7FWn8VUniGfyocdaP+lw+Mb6zsVafxVSeIZ/KgBUgAA0l2cH5N+QeNpv9dhzUOlfZwfk35B42m/12HNQAAAAAAAAAAk5s3n7owW0S66r3M1q+FN3zGCbb8OV/Kya3RaqiaVjGpzcz/pMk2H1XdGAwR66rTzSRr5+V/wCRm0jGSRujkajmORUc1U1RU6DoqtoX9hCEt6WvweRxmV7VwnFqlSnuk814rPYREBn21bBpMfrHXK3Rufa5na6ImvaHL71eroUwEoNzbVLao6dRa0dbsb2jfUVWovNP28n5gAGA2wAAAAAAfqKqLqi6H4AC9WjK8itOncN3qo2pwY5/Kb5l1Qy+1bYL9T6Nr6SkrG86oixu9G70GtgblHELmh8ubRG3OEWN182km/HLJ81rN52zbDYp9ErqGspHc6t0kb6NF9Bk1uzvE6/RIb1TMcvvZVWNf82hGYEpS0ku4d9KX78iBuNCsPqa6blH1zXv1Jb01XS1LeVTVMMydMb0d6j2IjQzzwu5UM0kapzscqeovNDl+T0WiU98rkROZ0qvT06kjT0og+/Tfo//AAh62glRfKrJ8Vl9MyUAI9Ue1PL6fRH1VPUInNLAnrTQvFJtlu7ERKm00UvSrHOZ9Juw0is5bW16dMyMq6G4lDupS4PrkbtBqem2z0ioiVNjmavOscyL60LlT7YMafp22luEK+La5PQ42oYzZS2VF7o0KmjeKU9tF+mT+jNjAwmDalh8nGtnjX9uncVsO0LD5E3XuFvxmuT5jYjiFrLZUjzRpzwi/h3qMv7WZSCwxZnisnuL9Q+WVE9ZUR5NjsmnIvttXXgndLNfWZVc0XsmuaMErK5jtpyXoy7At7L3Zn68i7UDtOiob9J6MutreujblRuXqnb9J7VWD3oxuhVW2L5FYCl9sbf/AM/S/wAZv0j2xt//AD9L/Gb9J97cfE8/pT8GVQKFbxaU43OiTT/rt+k8n5DYGJq+921vhqWfSeXWprbJcz0req9kXyZcwWKXMMXi93fqDyTIvqKSfaDh8Wut7gd8Rrl+YxyvLeO2a5ozxw67n3aUn/8AL6GUAweo2qYhFryaqplX9iB3z6FsqtsdhZr3Pbq+Zf2ka1PWprzxWzhtqL6/Q26eAYlU2UZeqy+pssGnazbRKuvcdjYnQss6r6kLJXbW8pn1SBtFSp+xFyl/zKpqVNILKGyTfBdciQo6IYnU2xUeLX2zN+nhV1tHRs5dXVQQNRNdZJEb6yNVwzbKq7VJ73Vo1eaN/IT/AC6Finnnner55pJXLzvcqr6TQq6UQXy6bfF5dSWoaCVX86qlwWf1yJGXXaNiNv1Rbo2penvadqv9PD0mH3jbMxOUy02hy9ElQ/T/ACp9Jp8EXX0hvKmqLUeC6k9a6HYdR1zTm/N9MjKr5tByq7I5ktydTxL+bp07WnnTf6TF5Hvker5HOe5d6q5dVU+QQ9WvVrPOpJt+ZY7e0oW0ezRgoryWQAMoxDBr7kj2vgp1p6RV31MyKjdOrnd5BRo1K0uxTWbPtxc0bam6laSil4mMsY6R7WMarnOXRERNVVTZ2B7LKquWOvyJH0tNxbTJuken7XwU9PgNhYZglkxprZY4u6q3TfUSpqqfFT3vrMrLbh2jsYZTudb8N3r4nPMZ0ynUzpWWpf1b/Tw47eB4W+jpaCkjpKKCOCCNNGMYmiIe4BaEklkiiSk5PNvNgjZtZqO6NoN1ci6oyRsfyWonzEk1VERVXghFPJqru7IrjV669tqZHIvVyl0K1pPUyowh4vPkvyXfQWlndVanhHLm/wAFuABSjpwAAAAAAAAAAABJn2PjC/bvalWZXUw8qksNMvalVN3dEurW+ZvLXzE/zSXYVYX9iGwy2zzw8iuvTluM6qmi8l6IkaL4GIi+VTdoAAAAAAAAAAAAAAAAAABGf2QfC/bzZZSZXTQ8qqsNT98VE39ol0a7yI5GL5zn+dgsysVJk+KXXHq9qOprjSyU8mqcEc1U18i7/IcjsmtFXj+RXGx17FZVUFTJTytX4THKi+oAtwAAAAAN29g7+Upjviqv/byHSs5qdg7+Upjviqv/AG8h0rAAAAIVeyW/jTCvEVf80ZDwmH7Jb+NMK8RV/wA0ZDwAAAAAAAnJ7HBi7KbEsiy+aJO3VtU2igeqcI405TtPC5yfJJaGmOwotzKDscccc1vJdVrPUO3cVWZ6a+ZqG5wAAWXPLo6yYRfbwxe/orfPO34zY3KnpRADn52am1KpzrabUWChqnLYLDK6ngY1e9lnTdJIvTv1anUnWaEPuolknnknlcr5JHK97lXVVVV1VT4ABV2e5V9nutNdLXVy0lbSyJLBPE7kuY5OCopSAA6Udivt1oNqlgS13V8VLldDGndMGuiVLE3duYnrTmXqN4HHrF79dsZv9HfbHWy0Vwo5EkhmjXRUVOZelF4KnOh0q7GrbTadrWLI56xUmRUTES4USLpv/SM6WL6F3AG2wAAUtbbqCtnpZ6ujgnlpJe20z5GI5Yn6KnKaq8F0VU8pVAAAA1h2TO02DZfswrbvHIz22q0WltkSrvWZye706Gp3y+BE5wCLXZ8bVfshyyPZ9Z6nlWyzP5dc5jt0tVp7nrRiLp4VXoItnrV1E9XVS1VVK+aeZ6ySSPXVz3Kuqqq9KqeQAAAAAAB60f8AS4fGN9Z2KtP4qpPEM/lQ460f9Lh8Y31nYq0/iqk8Qz+VACpAABpLs4Pyb8g8bTf67DmodK+zg/JvyDxtN/rsOagAAAAAAAAABtrse7uyOor7JK5EWVEnh1XiqbnJ5tFNxkT7Hcqmz3amuVI7kzQPR6dC9KL1Km4k9jN5pL/Zae50bkVkre+brvY7navWheNHb1VKP6D2x+hy3TLDJUbn/FxXwz2+TXVfcraungq6aSmqYmSwyNVr2OTVHIvMaG2mbPaiwSPuNrY+e1uXVU4ug6l6U6/Ob+Px7WvY5j2o5rk0VFTVFQk8Qw6lfQ7MtTWx+BBYPjNfC6vap64vatz/AD5kQwbh2h7LeWslyxpiI5e+ko9ePWz6DUM8MsEz4Z43xSMXRzHJoqL1oUC8sa1nPs1Fwe5nXcNxW2xKn26MuK3rifAANMkgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD7hikmkbFDG+R7l0RrU1VfIZtjWzDI7ryZKqJttp138qf3ap1NTf59DPQta1xLs0otmpd31vZx7VeaivPptZgxkmL4TkGQua6jo3RU68aibvWadXT5Dc2L7NscsvJlkgW4VKfnKhNURepvBPSZk1Ea1GtRERNyInMWWz0ab+K4l6LqUrEtN4rOFnDPzf2XXkYHiWy+x2dWVFw/8AkqtN+siaRtXqbz+UzxjWsajWNRrUTRERNEQ/QWi3taNtHs0o5Iol5f3F7Pt15uT/AHsW4AAzmoAAAWvLK5LZjVxrlXRYad6tXr00T06EV1XVdVN7be7s2kxeK2MfpLWypqn7Dd6+nQ0QUfSWv27iNNfyr3f7R1PQm1dKzlWf879lq+uYABXC5gAAAAAAAAAyvZDik2cbS7Di0TVVK+sYyVUT3MSd9IvkaimKEuPY5cL7ryO+Z1VRax0MSUNI5U/OP3vVPA1ET94Am3RU0NHRw0lNGkcMEbY42Im5rWpoieZD1AAABzp7MHalfrptwutFYMhudDbrQjaBjKSrfE1z2a9scqNVNV5SqmvUgB0WByI+znNv1wyH/EpvrD7Oc2/XDIf8Sm+sAddwciPs5zb9cMh/xKb6w+znNv1wyH/EpvrAHXcHIj7Oc2/XDIf8Sm+sPs5zb9cMh/xKb6wB13ByI+znNv1wyH/EpvrGedj/ALV8kxza/j1xvGS3artjqpKeriqa2SSPtcneKqo5VTdqjteoA6dgIqKiKi6ovBQADnp2fuF/Y9tgZkdNDyKPIKdJlVE3dvZo2TyqnJd5VOhZofs5cL+yrYhV3Gni5dbYJEr41RN/a072VPkrr+6Ac3wAAAAAbt7B38pTHfFVf+3kOlZzU7B38pTHfFVf+3kOlYAAABCr2S38aYV4ir/mjIeEw/ZLfxphXiKv+aMh4AAAAAAAdQexCkbJ2OOHOYuqJSyNXwpNIim1yP8A2A95Zc9gNNRctFktlfPTuT4KKqSJ/OSAABjG1q3yXXZflFuharpZ7TUsY1OKu7W7RPOZOfjkRzVa5NUVNFQA40qioui8UPw2n2UGzip2b7V7lb2wPbaq6R1XbZdO9dE9dVai9LVVW+ROk1YAAAAC+4Jll8wnKaPJMerH0lfSP5TXJ7l6c7HJztVNyoWI9aWCeqqYqamifNPK9GRxsbq57lXREROdQDqXsA2t2PaziDLnQubTXSnRGXGhV3fQv04p0sXmXycTZBojsPti67MMSfdr3En2TXdjVqW8e5YuLYU6+d3Xu5je4AAAAIB+yExZm7abRVF4p3NxttOkdokjVVjVeMnK6JNeKdCIT8Md2jYZYc+xKsxrIqRKijqW7lT3cT/evYvM5OkA5Egz/bnssv2ynMZbJdmOmo5FV9BWtaqMqY9dy9Tk4KnMpgAAAAAAAB60f9Lh8Y31nYq0/iqk8Qz+VDjrR/0uHxjfWdirT+KqTxDP5UAKkAAGkuzg/JvyDxtN/rsOah0r7OD8m/IPG03+uw5qAAAAAAAAAAAynZ5mFXity5WjpqCZUSeHX/M3rQxYGWjWnQmqlN5NGC5tqV1SlRqrOLJZWi40d1t8VfQTtmglTVrk9S9C9RVkZsFzC5YrXcuByzUki/fqdy967rToXrJB4vkNsyK3NrLbOj0/ORrufGvQqHQMMxanexyeqe9dDkOOaP1sMn2l8VN7H9n5/UuxjOZ4VZsniV1TF2irRNGVMSaOTw/CTwmTAkq1GnWg4VFmiEt7mrbVFUoycZLeiNmYYJfcbe6SaBamjRd1RCiq3T9pOLTFSXjmtc1WuRHNVNFRU3KYLlmzCw3hXz0Tfa2qXfyom/e3L1t+jQqd9o3JZytnn5P7PqdAwvTWLShexyf9S+66ciPoMsybZ/kljV0klGtXTJ+ep++TTrTihiioqLoqaKVmtQqUJdmpFp+ZeLa7o3UO3RkpLyPwAGI2AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD0ghmnkSOCKSV68GsaqqvkQymy7O8runJcy2upo19/Uu5Cebj6DNSt6tZ5U4t8DWuLyhbLOtNR4vIxIJvXRDclk2NwN5L7xdXyLzx07eSnyl+gzux4djdmRForVAkifnZE5b/OvzEzb6O3VTXUyiub9itXmmdhR1Us5vy1Lm+hoGw4Xkl65LqO2TJEv52VOQzzrx8hsLHtjkLOTLfbisq8Vhpk0Twcpd/oNtJuTRAT9to9a0tc/ifns5FSvtMb+4zVLKC8tvN/bItVix2yWONGWy3QQLpvejdXr4XLvLqATcKcaa7MFkir1as6su3Uk2/F6wAD0eAAAAAAAfj3NYxz3uRrWpqqrwRD9NV7a8zbTU78btsus8qaVb2r7hvwPCvP1Gre3cLSi6s//Wb+G4fVxC4jQp79r8FvZr7abkX2R5TPUxOVaSH7zT9bUX3XlXeYuAczrVpVqjqT2s7hbW8LajGjTWqKyAAMRnAAAAAAAAACIqrom9TqX2L2F/YLsTsFpli7XWzw921mqb+2y98qL4E5LfIc+uxswxc72zY/YpIlkpG1CVVZ0JDF3ztfDojfKdUmojWo1ERERNERAAAADGtqeUQYXs7vuUVCoiW+jfKxF99JpoxvlcrU8pyTuFXPX19RXVUiyT1ErpZXqu9znLqq+dScvsi2Ze12EWfCqabkzXWoWpqWov5mLgi+F6p8kgmAAAAAAAAAAD9RVRdUXRUPwAHVHsaMy+znYtj17kkSSrZTpS1e/f22LvHa9a6I7ymxyFXscOZdruGQYJUyojZmJcaNqr75ujJETyKxfIpNUAFPdKKmuVtqrdWRpJT1ULoZWL75rkVFTzKVAAORW03GKnDM/veL1TVR9urJIWqvvmIveO8rVRfKY4St9kWwv2uzaz5tSw6QXWn7lqXIm7t0XuVXrVip8kikAAAAbt7B38pTHfFVf+3kOlZzU7B38pTHfFVf+3kOlYAAABCr2S38aYV4ir/mjIeEw/ZLfxphXiKv+aMh4AAAAAAASu9jpzSO3ZlecJqpkbHdoUqqVFXjNFrykTrVi6/uk6jj9huQ3HFMqtuR2mXtVbb6hs8S8yqi8F6lTVF6lOrOyvNrTtCwa3ZTZ5Wuhqo07bHrq6GVPdxu60X5lAMoAABgu2vZfju1XEX2O+RrHNGqyUdZGidsppNOKdKLzpzp5Dnftg2G59s0rpfbW1S1trRypFc6RivgenNytN7F6nek6lHzKxksbo5GNexyaOa5NUVOtADjSDq7ftjmy2+TvnueB2KaZ+90jaVsbneFWaKeVo2KbJrVK2Wi2f2FsjfcukpUkVPl6gHNPZ9s5zTPLgyjxbH62v1VEdMkathj63SL3qecnT2NfY1WbZs6LIcjkgvGT6ascjdYKPxaLxd+2vk0N+0VJS0VO2mo6aGmhb7mOJiMangRNx7AAAAAGMbUM4sezzDK3J7/AFCR09O3SONF7+eRfcxtTnVV83ExXseNs1j2u40+qpmMobxSrpXW9X8p0eq7ntX3zF6eZdygG0QAAYdtf2dY/tNw2oxy/wACaORXU1S1E7ZTS6bnsX1pzpuOY21rZ9kGzXManG8gg5Mka8qnnan3uoi1717V6F6OZdx1qNe7d9lNi2r4dJZ7mxsFfCivt9cjdX08mnpavOnP4QDlSDIdoWHX3BMrrMayKkdTVtK7Th3sreZ7F52rzKY8AAAAetH/AEuHxjfWdirT+KqTxDP5UOOtH/S4fGN9Z2KtP4qpPEM/lQAqQAAaS7OD8m/IPG03+uw5qHSvs4Pyb8g8bTf67DmoAAAAAAAAAAAAACvsV4uNkr2V1tqXwTN46cHJ0KnOhQA9RnKDUovJo8VKcakXCazT3EgsD2kWy/tjo7grKG4ru5Ll7yVf2V6epTOyIaKqLqi6KZ9hO0262RI6S5cq4UKbk5S/fGJ1Lz+BS2YdpFshc8+pz7GdDXrq2P8Aa/s/s+Zv4FoxvJLPkNMk1srGSKiauiXc9nhaXctVOpGpFSg80UGrRqUZuFRNNbmDHshwzHL5ynVttjSZfz0XeP8AOnHymQg+VaUKsezNJrzPtC4q28u3Sk4vxTyNO33Y3M1XSWW6NenNFUt0X5SfQYNecKye0qq1VondGn5yJO2N86EmwQlxo7a1NcM4vy2e5aLPTK/oaquU156nzXQiG9rmOVrmq1ycUVNFQ/CVlzsVmuaKlfbKSo153xIq+fiYtctleJ1eroYKijcvPDKunmdqRFbRm4j8uSfsWO204tJ6q0HHhk19n7EfAbgr9jDV30F8VOqaHX0opYqzZFk0OvaJqGpTm5MitX0oR1TBr2ntpt8NZM0dJcLq7KqXHNfU14DLKrZzmNOu+zvl645Gu+ct0+JZPBr2yw3FNOOkDneo1JWdxDvQa9GSFPEbOp3KsX6osgK+WzXeJdJLXWs8MDk+Y8Foa1FVFo6hFT/pL9BhdOa2o2VWpy2SXMpwe3ctT/y83yFPruKs/wCUqP4anzsy8D124+JTgrWWi6vXRltrHL1QO+gqocXyOb8HYri7r7mdp6j0qNSWyL5GKVzRj3ppeqLQDJYMCy+b3Niqmp0v0b61LlTbLMvm0V1JBCi/Dnb82pnjYXU9lN8ma1TF7Gn3q0f7kYQDZtJsbvj9O6bnQQp+zynr6kLzRbGKRNFrL3M9edIokb61U2oYJfT/AJMuLRH1dKMLp/7ufBN/Y0yCQVDspxKn0WWKqqlT9LMqJ5m6GQW/EsaoNFprJRNVODnRI5fOupvU9GbmXfkl7kXW04sofLhKXJff7EZ6K3XCucjaOiqahVXRO1xq71GSWzZvl9cqL7VrTNX31Q9Gejj6CRscccbeTGxrG9DU0Q+iRpaMUV8ybfDV1Ia406uZfJpKPHN9DTVq2M1TtHXO8RRpzsgjVy+ddPUZbadluKUPJdNTzVz0555F08yaIZwCUo4PZ0dkE+Ov6kDc6SYlcapVWl5avoUlutlut0fa6Chp6ZvRFGjfUVYBJRiorJLIhpzlN9qTzYAB9PIAAAAAAAAAAAAB8yyRxRukle1jGpq5zl0RE6VU1LtE2ota2S2Y1Jynb2yVnMnxPpNS8vqNnDt1H6b2SGG4XcYjV/ToR4vcuJe9qOfw2GF9stUjZbo9NHOTekCdK/tdRoaaWSaZ80r3Pke5XOc5dVVV5z7ijqa2sbHG2SeomfoicXPcq+lTIM0tkGPwUdj0Y+vazt9bIm/kvcnexovQielSiX13Wv3KtLVGOxcd3E6xheH22EKNvT1zlrb3vLf5JbF5sxkAEUTwAAAAAAAAAAABNj2OLC+02q/Z5VRd9UvS30blT3jdHSKnhVWp+6pMA072JV4xP7QWMU1ouVE10FLyKyNZmo9lQqqsnKTXVNXKqp1aG1vbW1/1lR/x2/SAVgKP21tf9ZUf8dv0mAbedq2O7Pdntzub7vRvuklO+O3U0czXSSzKmjVRqLroirqq8NEAIIdl9mf2Z7dL3PBN2yhtrkt9Lou7kx7nKnhfylNQn3PLJPM+aV6vkkcrnuVdVVVXVVPgAAAAAAAAAAAAAzjYPl78F2t49knLVsFPVtZUprprC/vH6/uqq+Q6vRSMliZLG5HMe1HNcnBUXgpxpOlHYmbWbFmeyu1W6tu9NFf7TTtpKynnlRsjkYnJbIiKvfIrUTenPqAbwBR+2tr/AKyo/wCO36R7a2v+sqP+O36QDWXZa4X9m+w6+UcMXbK6gZ7YUiIm/lxIqqieFvKTynMA7C3C9WGChnmrrrb46VkblmdJUMRqM0367+GhyQzJba7Lbw6zKi21a6ZaRU4dq5a8n0aAFpAABu3sHfylMd8VV/7eQ6VnLvsTsltOJ7e8cvF7qWUtCj5YJJ3ro2NZInMRzl5k1cmqnTeO72mRjXsulE5jk1a5KhqoqdPEArQUftra/wCsqP8Ajt+ke2tr/rKj/jt+kAht7Jb+NMK8RV/zRkPCVHsiWVWK95jjtmtNwgram100y1awvR7Y3SObyWqqe+0bqqc2qEVwAAAAAAAbg7GPbXcdkmTubUJLWY5XvalfSNXexeCSs/aTo503dBp8AHYPE8isuV2ClvuP3CGvt9UzlRTRO1TwKnMqc6LvQupyn2N7Xcy2WXfuvHa7l0cjkWpt8+roJ0628zv2k3k49kPZQbOs4ihpLnWNxq8O0R1NXPRInO/Yl9yvgXRQDeoPiCaKeFs0ErJY3pq17HIrVTqVD7AAAAAB4V9ZSUFK+rrqqClp401fLNIjGNTrVdyAHuY3tGzjG9n+Mz5Bk9wjpKSJF5DddZJn8zGN4ucppXbJ2WeD4pDNQYgrcnu6atR8TtKSNel0nvvA3zkIdp20PLNo1/decquklXLvSGFO9hgb8FjOCJ6V51AMi7ITbDfdreVLW1fKpLPSuc23UCO1bE1ffO6Xrzr5EMU2cZnfsBy2jybHataespnb095KxfdMenO1UMcAB1b2H7ULDtVwyG+2h6RVLNI66ic7v6aXTei9LV4ovOnlM9OTuxnaTftl+aU+RWSVXM1RlXSucva6mLXex3X0LzKdKtmW1TCtoOPQXax3ukR7mIs9JLM1k1O7Te1zVXXd08F5gDOAUftra/6yo/47fpHtra/6yo/47fpANa9khsZs+1vFFhckdJf6Niut1dyd6L+jf0sVfNxQ5pZZj13xXIaywX6iko7hRyLHNE9OCpzovOi8UVOKHXf21tf9ZUf8dv0kWPZCbVhFZhFvyNKyibk8VSyCn7VK1ZKiFdeU1yJxRvFF5uHOAQaAAB60f9Lh8Y31nYq0/iqk8Qz+VDjnTvSOeN68GuRV851uwTMMZyLEbZdrVeqGelnpmKipO3Vq8lNWuTXcqLuVADJwUftra/6yo/47fpHtra/6yo/47fpANPdnB+TfkHjab/XYc1Dof2dmXY7TbDa2xLdaWS5XOeFtNTxyo57kZIj3OVEXc1ETj0qhzwAAAAAAAAAAAAAPeGlnmpp6iJnKjgRFk0Xe1FXRF06NTwLnjNzbarxFUyxJNTO1jqIl4SRu3OTzelELlnWMusVVFVUj1qLTWJ2ykqE3orV38letDOqDlS/Uju2/Z8P3vNR3ShcKjPV2u755bVx3+a4MxoAGA2z2oqqpoqhlTSTyQTMXVr43K1U8qGy8S2uV1LyKbIIO64k3dviREkTwpwX0Grgbdre17WWdKWX05Eff4Xa38ezXhn571wZKfH8jst+hSS2V8Uy6arHro9vhau8uxEanmmp5mzU8r4pGrq17HKip5UM7xrarkFsRsVfyLnAm7753siJ8ZOPl1LRaaS05fDcRyfitnX6lExDQitDOVpLtLwep89j9jfwMLx7aXjF25MctStvnX3lQmia9TuBmMMsc0aSQyMkY7ejmrqi+UsVC5pV12qckym3VlcWkuzXg4vzR9gAzGsAAAAAAAAAfPa2fAb5j6AAzAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPl72sYr3ua1qJqqquiIYfku0jGrMjo2VPd9Q3d2qn3oi9buCGGvcUqEe1UkkjZtbOvdy7FCDk/IzIxfLs5sWOMcyoqEqKvTvaeFUV2vXzN8pqLKtpuQXlHwUr0ttK7dyIV79U63cfNoYQ5znOVzlVzlXVVVd6lavdJUvhtl6vp1LvhmhMnlO9ll/1X3fTmZTmmdXrJnujlk7mote9pol0avxl98pi8bHySNjjY573Lo1rU1VV6D2t9FVXCsjo6KCSeeRdGMYmqqb22abPafH2suNzRlRc1TVqcWwdSdK9fmIS1tLnFK3ak8/Fvd+/As1/iFlgNsoRik90Vv8A3vbLbgGJU+H2WfKL+1vdkcKyNjX8ymnD4y8Oo0/ebhPdbrVXGpXWWokV7urXm8htTb5kaI2HG6aTeuk1VovyW/P5jT5lxidOlKNrR7sNvm95h0cp168JX9z36mzyitiX15MAAhSzAAAAAAAAAAAAH3HJJHr2uRzNePJXQ+u6Kj9PL8tTyAB690VH6eX5anw973rq97nL0qup8gAAAAAAAAAAAAAAAAH6xzmO5THK1elF0PwAHr3RUfp5flqO6Kj9PL8tTyAB6Onmc1Wumkci8UVynmAAAAAD0bPO1ERs0iInBEcp5gA9e6Kj9PL8tR3RUfp5flqeQAP1VVV1VdVPwAAAAAAAAAAAAAAy7C9pefYa5v2NZZdbfG38yydXRL4WO1b6DbmP9mHtYtzGsr2WS7Iiaa1FIrHL5WOaR1ABLSm7N7J2s0qcGs8jumOrkYnpRT4rOzdyx7V7kwmywrpuWSolfv8AJoROABILIuy82u3RjmUdRabQ13PS0aK5PAsiuNQ5hneZZhMsmTZNdLrquvInqHKxPAz3KeRDGwAAAAAAAD6Y9zHcpjlavSi6HyAD17oqP08vy1HdFR+nl+Wp5AA9e6Kj9PL8tT4e98i6ve5y9KrqfIAAAAB9slljTRkj2ovQ5UPgAHr3RUfp5flqO6Kj9PL8tTyAB9Pe97uU9znL0qup8gAAAAAAAAAAAAAA2bspvVBdLfLhOQNbLSz6rSOcvuXfBReZedPKayPqJ74pGyRvcx7FRzXIuioqc5tWlzK2qqaWa3rxW9GjiNjG9oOk3k9qe9NbGjKM/wALuGLVqq5HT0EjvvNQibviu6FMVN/bOcqocysj7PeWRSVrI+TLHIm6dvwk6+kwzaDswq7YslwsLX1VFvc6DjJEnV8JPSSd5hSlT/xNp8UHu3ogsNx+UKv+CxD4ai1Z7pefryfsa0B+qioqoqKipxRT8IItYAAALlZr9ebPIj7bcaim/Za9eSvhTgW0HqE5Qfai8meKlOFWPZmk15mzbHtgvFPyWXWip61icXs+9v8Ao9Bm1m2p4tX8ltRNNQSLxSdm7zpqR8BL2+PXlHU5dpefXaV270Tw241qPYf/AF1e2texLK33O3XCNH0NdTVLV54pEd6irIjQTSwPSSGV8T04OY5UX0GQ2vO8rt3JSG81EjE95MqSJ/mJijpPB/Ng1w1lcudBaq10KqfFZe6z+hJgGj7btjvUKI2ut1HVJzuYqxuX1p6DI7ftjssuiVturadedWcl6fMSdLHLKp/PlxRBV9FcUo/7faXk0/z7GzQYjQ7SMPqtNLqkK9E0bm/NoXukyGxVaJ3NeKGTXgiTt182pv07uhU7k0/VETVw+6o/MpSXFMuYPlkkb01ZI1yL0LqfRsGo1kAAAAAAAAAAAAAAAAD4fLFGmr5GNROlyIAlmfYLZV5BYqVF7ovFBHpzLO3XzalmrdouH0uvKvDJVTmiY5/qQwTuqFPvzS9UbdKwuq3y6cnwTMsBrev2wY/FqlJR11SvW1GJ6VMeuO2a4v1bQWimh6HSvV6+ZNDRq43ZU/58+GbJShovilbZSy4tL8m6TyqqmmpY1kqaiKFicXSPRqekjrc9o+XV+qLdHU7V97TsRnp4+kxmsraytkWSrq56hy71WSRXL6SMraT0l8uDfHV1Ju20Fry116qXDX0JDXnaPidtRU9sO65E95TN5fp4ekwe+bZKuRHMs1sjgTmkqHct3mTd6zVIIe40gvKuqL7K8upY7TRDDrfXNOb839ll75l4vuT369uVblcp5mKv4NHclifupuLOCus1puV4q20tto5amVeZjdydarwTykS5VK09ecm/VlijCja0/hSjFcEkUJkmG4beMnnTuSLtNKi6PqZEVGJ4OlepDYuF7JaamVlXkcjamVN6U0a/e0+MvP6jaFPDDTwMgp4mRRMTRrGN0RE6kLFh+js55TudS8N/4KZi+mVKknTsvil/VuXDx+nEsWG4jacXpORRRdsqHJpLUPTv3/QnUVuU3qmsFjqbpVKnJib3jdd73LwanhUublRrVc5URETVVXmI+7Xcu+yG8dxUcirbqRyozRd0r+d3zIT1/dUsNtsqayexIqeEWFfG77Os21tk/Lw9di/Bh92r6m53KouFW9XzzvV71615vAUoBzuUnJ5vadkjFQioxWSQAB8PQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABUW6tqrdXRVtFM6GeFyOY9vFFJCbOM4o8oo0gmVsFzjb98i13P/AGm9XVzEcz2o6moo6qOqpZnwzRu5THsXRUUk8NxOpYzzWuL2r97yExvA6OKUspaprY/s/IkFm+zqz5Dy6mBEoK9d/bY2969f2m8/h4mlcqxG+Y5MqXCkcsOujaiPvo3eXm8Cm2dnO0qlvDY7be3sprh7lkq7mTfQ7qNhzRRTxOimjZLG9NHNcmqKnWhZquHWeKQ/WovJ+X3RRrfGcSwGr/hrldqK3Pw/6vw/eoiKDfOVbKbNcuXPaXrbahd/JROVEq+Dm8hqvJcHyOwq51VQPmgT8/B37PLpvTylZu8IurXXKOa8VrLxh2kVjf5KE8peD1Po/QxoAEYTgAAAAAAAAAAAB7QVVTAusFTNEv7D1T1FxpsmyGn07Re69mnRO76S0A9xqzh3W0Yp0KVTvxT4oyaHPcvi9zfapfj6O9aFXFtNzJnG6Nf8aBnzIYcDPG+uY7KkubNWWFWM+9Rj/auhnTNquXtTRaild1rToen22st6aD+B/wCzAQZFid4v9x8zC8Cw5/7EeSM++21lvTQfwP8A2PttZb00H8D/ANmAg+/5pef8j5nz/IcN/wCCPIzx+1jLnLukom+CD/2eMm1LMH66VsDNfgwN3GEg+PErt/7j5npYJhy2UI8kZdLtIzKT/wDuHNTobCxPmKObOMtl91f61Piv5PqMdBjle3MttSXNmaOF2UO7Riv/AJXQulRkN+n/AA15r3+Gd30lBNU1Ey6zTyyL+29V9Z5AwSqTl3nmbUKNOHdil6AAHgyAAAAHtS01TVypFSwSzyLwbGxXL5kM0x/Zdk1y5L6mKO3Qr76de+0+Km/z6GxQta1w8qUWzUur+2tI9qvNR4v7bTBS52Kw3i9zpFa6CaoXXRXNbo1vhcu5DdmObK8dtvJlrkkuU6b/AL7uZr8VPn1M6pqeCmhbDTQxwxNTRrGNRqJ5ELBa6NVJa68sl4LW+n1Kff6b0YZxtYdp+L1LltfsaoxXZBGxWVGQ1fbF49zwLonld9BtC1WygtVK2lt1JFTQp72Numvh6SrBZ7TD7e0WVKOT8d/Mo2IYvd4hLOvPNeGxcgAay2p7RI7bHLZrHK2StcitmnauqQ9SdLvUe7u7pWlN1Kj1fUxYfh9fEKyo0Vm/ZLxZSbZs4SGOTHLTN99cnJq5Wr7lPgJ19PmNNH69znvV73K5zl1VVXVVU/DnN9e1Lyq6k/ReCOz4VhdLDbdUafq/FgAGmSQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAATcuqGxcC2nV9nSOhvPLraFNzX66yxJ4ffJ1Ka6BsW13VtZ9uk8mad9h9vfU/0q8c17rgyV9ku9uvVE2stlXHURLztXe1ehU4opXKiKmipqhFGyXi5WWsSrtlXJTSpx5K7nJ0KnBUNuYhtboqlGU2Qw9yS8O6I0VY3eFOLfSXOw0go18o1vhl7fj1Oa4tohc2rc7b44/wD9L03+nIyzIcExm98p9Rb2Qzu/PU/eO8um5fKhry/bHK6JXSWa4xVDeaOdOQ7zpuX0G46Kqpq2nbUUlRHPC9NWvjcjkXyoexvXGFWl18Uo6/FaiJs8exGxfZhN5Lc9a99noRcvWK5DZ1Xu+1VMbE/ONbymedNULKu5dFJeqiKmi8CyXfE8cuuq11npZHL79rOQ7zt0UhK+jG+jPn1XQtNpp1uuKXrF/Z9SLoN63TY/YKhVdQ1lXRrzIqpI307/AEmL3HY5eotVobjR1KcyPRY1+dCIq4Fe0/5M+H7zLDb6VYZX/wBzsvzTX49zWQMqr9nmX0evKs8szU54XNf6EXUsdXaLrRqqVVtq4dOPLhcnzEfUtq1Lvwa4pkxRvrav8uonwaZQg/VRU4pofhgNoAAAAAAAAAAAAA/UaqroiKq9SFZTWi61KolPbayXXhyIXL8x6jGUtiPEpxgs5PIogZLR4Hl1Vp2ux1TUXnkRGJ/mVC+UOyTKJ9FqHUVKi/Cl5Sp5kNqnh91U7tN8jQrYxYUe/WjzX2NfA3Bb9i7dy198VelsEPzqvzGR23ZVidKrXTQVFY5P0sqoi+Ruhv0tH72e1JcX0zImvphhlLuycuC65EfURVXREVV6ELxasWyG6aLRWirkavB6xq1vnXcSRtuPWO2oncNpo4FTnbEmvn4lzJOjouv92pyX3fQg7nTt7KFL1b+y6mi7Psgv1To641dLRMXi1F7Y/wBG70maWXZPjVFyX1i1FwkT9I7ks8yfSbABMUMEs6OvsZvz1/grt3pRiVzqdTsrwjq99vuUlttlutkSRW+hp6Vic0UaNKsAlIxUVklkiBnOU32pPNgAH08g8qqogpad9RUzMhhjTV73u0RE8Ji+Y59Y8ca+F0yVlaibqeFdVRf2l4J6zSOY5jecnn1rZu10yLqymjXRjfD0r1qQ2IY1QtM4r4peC+5ZMI0ZusQanJdiHi9/Bb+OwzLaLtQkq2yWzHHuigXVslXwc/qb0J18TViqqqqqqqq8VU/AUe7vKt3Pt1X0R1PDsNt8PpfpUI5eL3viAAapvgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/URVVERFVV4IgBcrDfrvY6jt1rrpaddd7UXVrvC1dymzsZ2wsVGw5BQq1eCz0/Dwq1fmU1A9jmPVj2q1yLoqKmiofJvWuI3No/4ctXhuIq/wayxBZ1oa/Fanz6kqbHkFlvUSPtlxgqOliO0enhau8uhEWGWSGRJIZHxvbwc1dFTymX2HaVlNq5LH1iV0Ke8qU5S6fG4+ksltpNB6q8cvNdP/AEpd9oPVjnK1qZrwep89n0JFg1hZNsNqnRrLtQT0j+d8X3xnzL6zNbPlWPXZE7hu1LI9feK/ku8y6KTtDEba4+XNP68iqXeD31p86k0vHaua1F6PxURU0VEVOs/UVFTVF1QG4RpR1NrtlTr3TbqSbXjy4Wu9aFtqMNxWddZbDQqvVHyfUX4GKdClPvRT9DPTuq9PuTa4NoxKbZxh0uutnY3X4Er2+pSmfstw52ulDOzXoqH7vOpmwMDw+0e2nHkjajjF/HZWl/czBPtUYh+gq/7wo+1RiH6Cr/vCmdg8/wCWWf8Axrke/wDPMR/55c2YO3ZXh6JotJUu61qHHvHszw1nC1K74071+czEHpYdaL/ajyR5eM4g9teX9zMZiwHEI+FjpnfG1X1qVtPi2NwfgrHb08MDV9ZeQZY2lCOyCXojBO/up96rJ+rKaCgoYPwFFTRfEia31IVCIiJoiIiH6DMopbDVlKUtbYAB9PgAAAAAAAXcmqlkvWWY7Z0Xu6607Hp+bY7lv8yaqeKlWFNdqbSXmZKNCpWl2acXJ+SzL2fiqiIqqqIicVU1Rf8AbHTMR0dktr5XcElqF5LfDyU3+lDXeQ5nkd95Ta24yJCv5mLvGeZOPlIW50htaOqHxPy2cyz2Oh9/cZOrlBee3kvvkbvyfaFjdjR0bqpKypb+Zp1Ry69a8ENT5ZtMv96R8FK/2tpHbuRCvfuTrdx82hhcEMtRM2KCN8sjl0a1jVVVXwGYQYWy00Dbrl9StBA7fFRxqi1Ey9CJ73wqQFbE72/zUPhjvy1L1f74FutsDwvCezKp8c3sz1tvyj+8vEw1Ue5FkVHKmu93WfJc73de71bBTU0dFQxL96p4+Cdbl4ud1qWwgpqKeUXmWmnKUo5yWT8AADyZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAE3LqgABlFovVqr2NoMqpXSs05MdfDuni+N8NPDvK+8bObmykS42CoivdvcmrXwL36J1t6fAYQXrFcnu+N1fb7bUKjFX75C/fG/wp85v0bijP4LlZrxW1dfXX5kTc2lxS/iWUsn/AEvuvhvi+GryLTPDLBK6KeJ8UjV0c17VRU8inmb2s2SYZnkLKS9UNPBXqmnIm3Kq/sP4+TiUF/2OUkvKkslxfAvNFUJym/KTenmU3JYJUnH9S2kpx5PkRtPSijSqfo30HSn5616NdPU0wDKr3s+yq1K50lsfURJ+cp/vieZN/oMYljkierJY3RvTi1yaKhE1aFWi8qkWuJYLe7oXMe1RmpLyeZdLXk1/tip3Dd6uFE96kiq3zLuMptm1rJ6XRKptJWtT4cfJVfK3Q1+DLRvrmj8ubXqYLjCrK5+bSi/TXz2m5bftnpXaJX2WaNed0MqOTzKiGQUO1PEanRJKqelVf0sK+tNSPQJKnpDew2tPiumRCV9DsMqd1OPB9cyUNHl2MVeiQXyhcq8yyo1fSXWCrpKhNYKqCVP2JEd6iJJ9MkexdWPc1epdDehpRUXfpp8Hl1IyroJSfy6zXFJ/dEuwRRp71eKfTtF1ro9OZs7kT1lwhzPKofwd+rk8MmvrNmOlFL+am+Zoz0EuF3KqfFNdSTwI2RbQ8xj4XqV3xmNX5ipZtOzNun/ybHInTTs3+gzLSa13xl7dTWloPfrZOPN9CRQI8ptTzFF17tgXq7nb9B9rtWy9U07opE6+50PX+pLTwlyXU8PQnEfGPN9CQYI7u2o5kqaJXwt60p2fQeE20jMpON4c34sTE9SHx6S2u6MuS6nqOhF+9so830JHhVROJGKfNcrnTSS/VunQkmnqLZU3e61OvdFzrJdeZ87l+cwT0opLu03z/wDTap6CV336qXBN9CUlXdLbSIq1VwpYdOPLlanzljr9oGIUevLvMMjk5oUV/qQjW5znLq5VXwqfhp1NJ6z7kEuOvoSNHQW3XzarfBJdTeVy2xWOHVKGgrKpeZXaRp86mLXXbBfqjVtBR0lG3mVUWR3p3eg1sVFDQ1tdKkVFST1L197FGrl9BoVMbvqzyUsuC/bJejoxhVsu04Z5b5PP8exc7vlmR3bVK671UjV941/Jb5k0Qsi7+JnNj2W5RcOS+ohit8S887u++Smqmf4/sksNFyZLnNNcZU38le8j8yb184pYTf3b7Uk+Mv3mfK+kGE4dHsQkn5QXTV7mkbbbq65VCU9BSTVMq+9jYrlNi4xsiuVVyZr5UtoYuKxR6PkXy8E9JtOtq8dxG2cuXuW3U6J3rGNRFevQiJvVTUOc7ULjd0korOj6CiXcr9fvsieH3qdSG9PDrHD1ncy7cv6URVLGMUxiXZsofpw/qev8eiT4mR3q+4ls/hfQ47RQ1V105LpFXlchf2nf+Keg1Ne7tcL1XvrrlUvnmfzrwanQicyFEqqqqqrqq85+EPd387n4cuzFbEthZMOwmlZZzbc6j2yetvovIAA0SVAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP1FVF1RdFQzjD9pd8sfIp6ty3GiTdyJXd+1P2XfTqYMDPb3NW3l26Usmat3ZW95T/AE68VJfvZ4EmcWzbH8hY1tJVtiqV408yo1+vV0+Qu1zs9qubFZcLdS1KL+kjRV8/Eii1ytcjmqqKi6oqLvQzLGNpOSWVGRSTpcKZu7tdRvVE6ncU9JZ7XSOE12LqPquhRr/QypSl+pYVPRvJ+j68zaF12V4pWaughqKJ688Mm7zO1MXuWxiVNVt16Y7obPFp6UMmxzanjlzRsda59tnXmm3s+Unz6Gb0tRT1ULZqaeOaN3B8bkci+VCTjY4ZertQSfDV7EHPFMcwyXZqykv/ANLNc3n7M0BX7K8uptVjp6aqanPFMnqXQsVZiGT0mvb7FXIic7Ylcno1JQg1qmjNtLuya5M3aOnF7H5kIvmvuRJno6uB3JmpZ41TmfGqes8CXckbJG8mRjXp0OTUop7NaJ/w1ropNfhQNX5jTnos/wCWp7fkkKenkf56PKX4IoglBLh2LS732C369KQonqKWTZ/hz9dbFTp8Vzk9SmB6MXG6a9+htx06tP5qcvbqRpBI9+zfDHJus7W+CaT6x8/a0w3+ql/jP+k8f6Zuv6o+/QyLTiw/olyXUjkCRzdmuGtXVbRyupZn/Se0ez3Do+FjgX4z3r61Pq0Zut8o+/Q+PTixWyEuS6kawm/gSfhw3FYdORYKDVOdYkX1lfT2a0U/4C10UfxYGp8xljovV/mqLkYJ6d0F3KTfFpdSLNPQ1tQ7kwUlRKvQyNXeovFFheVVmnabHWIi872chP8ANoSbYxjG8ljGtToRND6NqnovTXfqN8Fl1NCrp3Wfy6KXFt9DQNv2S5TUaLUdx0jV49sl5S+ZqKZLbNjNO3RbleZH9LYI0b6V19RtkG/SwCyp7Yt8X0yImvpdidbUpKPBdczELTs3xK36O9re6np76oer/Rw9BlNJSUtJGkVLTQwMTg2NiNT0FmyDMccsaOSuuUXbU/MxLy3r5E4eU1tku2CsmR0Nhom0zeCTz98/yN4J6T3VvLDD1ksk/BLX++JioYdi+LvN9prxk3l7/Y27dLlQWuldU3CrhpoW++kdp5uk1fl+11jeXTY3T8teHdUzdyfFb9PmNU3a6XG7VK1NyrJqqVffSO108CcxRlevdIq1X4aK7K9/wXLDNDba3yncvty8N35/eoq7rcq+61bqu41ctTM7i57tdPB0IUgBXZScnm3my4whGEVGKySAAPh6AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABW2q7XO1y9tt1fUUrv+m9URfCnOUQPUZOLzi8meZwjOPZks0bEsu1vIqPksr4qa4MTnc3kP86bvQZnadr2P1KI2upquhfzrokjfOm/0GiASlDHL2jq7Wa89f5IC60Ww251/p9l/wDXV7bPYlFbctxq46JSXqje5eDXSch3mXRS8xvZI1Hxva9q8FauqERCqpLjcKRyOpa6pgVOeOVzfUpK0tKJL5lPkyAr6CQfyazXFZ+6y+hLMEabbm+WQytYy+1at6HuR/rRTYONZXkFS9jZ7gr0XTXWJn0EpbY9QrvJRa5dSCvdErq1Xac4tevQ2qC22eqnqEb25/K1brwROcuRNQmprNFZqU3Tl2WAeVW90dO97F0cnBTDsjvt1pGvWnquRou7721ebrQxV7iNFZyM9rZzuZdmDXqZsCP2Q5zlcb9I7zMxNfesYnqQxetyK/VuvdV4rpUXijp3aebXQgq2ktGDyjBvkuparbQm5qxUpVIper6EnK672uharq240lOice2Stb85jN12m4lQ6oyufWPT3tPGq+ldEI7vc57uU9yuXpVdT5I6rpPXl8uCXv0Jq30GtYa61Ry4ZLqbavO2WdyOZaLSyPokqH8pfkp9Jg98zbJrzym1d1mbGv5uH723zJx8pjoIi4xO6uNU5vLl9CxWmBWFprpUln4vW+bP1VVV1VdVPwA0CWAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP/Z" alt="AT&T" style="height:30px;width:auto;object-fit:contain;display:block;border-radius:4px">
+  </div>
+  <button class="mob-menu-btn" id="mob-menu-btn" onclick="toggleMobMenu()" title="Меню">☰</button>
+  <span class="mob-active-tab" id="mob-active-tab">Лоти</span>
+  <div class="tabs" id="main-tabs">
+    <button class="tab on"  onclick="sw('lots')">Лоти</button>
+    <button class="tab"     onclick="sw('import')">Імпорт</button>
+    <button class="tab"     onclick="sw('detail')">Деталі</button>
+    <button class="tab"     onclick="sw('fc')">Foodchain</button>
+    <button class="tab"     onclick="sw('stats')">Статистика</button>
+    <button class="tab"     onclick="sw('watchlist')">⭐ Мій список</button>
+  </div>
+  <div class="topbar-right">
+    <div class="rate-wrap"><span>₴/$</span><input type="number" id="g-rate" value="44" step="0.5" oninput="recalcAll()"></div>
+    <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Змінити тему">🌙</button>
+  </div>
+</div>
+
+<nav class="mob-nav" id="mob-nav">
+  <button class="mob-nav-btn on" onclick="sw('lots')"   data-pane="lots">   <span class="nav-icon">📋</span>Лоти</button>
+  <button class="mob-nav-btn"    onclick="sw('import')" data-pane="import">  <span class="nav-icon">⬆</span>Імпорт</button>
+  <button class="mob-nav-btn"    onclick="sw('fc')"     data-pane="fc">      <span class="nav-icon">🔗</span>Chain</button>
+  <button class="mob-nav-btn"    onclick="sw('stats')"  data-pane="stats">   <span class="nav-icon">📈</span>Стат</button>
+  <button class="mob-nav-btn"    onclick="sw('watchlist')" data-pane="watchlist"><span class="nav-icon">⭐</span>Список</button>
+</nav>
+
+<div class="body">
+
+<!-- ══ LOTS PANE ══ -->
+<div id="pane-lots" class="pane on">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+    <div id="summary-bar" class="summary-bar" style="margin-bottom:0;flex:1"></div>
+    <button class="btn btn-ghost btn-sm" onclick="exportCSV()" style="margin-left:10px;white-space:nowrap">⬇ Експорт CSV</button>
+  </div>
+  <div class="filter-bar">
+    <input class="fsearch" id="lot-search" placeholder="Пошук…" oninput="renderLots()">
+    <button class="filter-btn on" onclick="setF(this,'all')">Всі</button>
+    <button class="filter-btn" onclick="setF(this,'A+')">A+</button>
+    <button class="filter-btn" onclick="setF(this,'AA+')">AA+</button>
+    <button class="filter-btn" onclick="setF(this,'B+')">B+</button>
+    <button class="filter-btn" onclick="setF(this,'C')">C</button>
+    <button class="filter-btn" onclick="setF(this,'pos')">Маржа +</button>
+    <button class="filter-btn" onclick="setF(this,'neg')">Маржа −</button>
+    <div style="width:1px;height:18px;background:var(--b2);margin:0 2px"></div>
+    <select id="sort-select" onchange="setSort(this.value)" style="background:var(--s2);border:1px solid var(--b1);border-radius:5px;padding:4px 8px;color:var(--t2);font-family:'JetBrains Mono',monospace;font-size:11px;cursor:pointer">
+      <option value="lotId">↕ Lot ID</option>
+      <option value="model">↕ Модель</option>
+      <option value="endDate">↕ Дата закінчення</option>
+      <option value="margin">↕ Маржа</option>
+    </select>
+    <button id="sort-dir-btn" class="filter-btn" onclick="flipSortDir()" style="padding:4px 8px;min-width:32px">↑</button>
+    <div style="width:1px;height:18px;background:var(--b2);margin:0 2px"></div>
+    <select id="model-filter" multiple size="1" onchange="onModelFilterChange()"
+      style="background:var(--s2);border:1px solid var(--b1);border-radius:5px;padding:4px 8px;color:var(--t2);font-family:'JetBrains Mono',monospace;font-size:11px;min-width:160px;cursor:pointer"
+      title="Shift/Ctrl для вибору кількох">
+      <option value="">Всі моделі</option>
+    </select>
+    <button class="filter-btn" onclick="clearModelFilter()" style="padding:4px 8px;font-size:10px;color:var(--t3)">✕</button>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="lot-table-wrap">
+      <table class="lt">
+        <thead><tr>
+          <th style="width:32px"><input type="checkbox" id="chk-all" onclick="toggleAllWatch(this)" title="Виділити всі"></th><th>Lot ID</th><th>Модель</th><th>Гр.</th><th>Пам'ять</th><th>Qty</th>
+          <th>Auction $/ед.</th><th>Full Price $</th>
+          <th>Інв. ₴/ед.</th><th>RRP ₴/ед.</th><th>Маржа</th><th>Склад</th><th>Дата</th><th></th>
+        </tr></thead>
+        <tbody id="lot-tbody"></tbody>
+      </table>
+    </div>
+    <div id="lots-empty" class="empty-state" style="display:none">
+      <div class="empty-icon">📋</div>
+      <div class="empty-title">Немає лотів</div>
+      <div class="empty-sub">Завантаж listings на вкладці «Імпорт»</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ IMPORT PANE ══ -->
+<div id="pane-import" class="pane">
+  <div class="card card-inner">
+    <div class="card-title">Завантажити файл listings або окремі манифести</div>
+
+    <!-- Google Sheets loader -->
+    <div style="background:var(--s2);border:1px solid var(--b1);border-radius:6px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span style="font-size:10px;font-weight:600;color:var(--t3);letter-spacing:.08em;text-transform:uppercase;white-space:nowrap">B-Stock Listings</span>
+      <code style="font-size:10px;color:var(--t2);background:var(--s2);padding:2px 7px;border-radius:4px;font-family:'JetBrains Mono',monospace;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block" title="https://docs.google.com/spreadsheets/d/e/2PACX-1vSlZ2tNCZxveIYSqGL5c3seOzQm7Y3rWigaOJLiDkwzCaPIsM4x8KaXv17b3BFeqXeOzj3-L1PZwROH/pub?output=csv">…/pub?output=csv</code>
+      <button class="btn btn-ghost btn-sm" onclick="loadListingsFromSheet()" style="white-space:nowrap">🔄 Завантажити з Google Sheets</button>
+      <span id="listings-load-status" style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--t2)"></span>
+    </div>
+
+    <label class="multi-drop">
+      <input type="file" id="csv-input" accept=".csv" multiple>
+      <div class="md-icon">📂</div>
+      <div class="md-title">Перетягни CSV або натисни для вибору</div>
+      <div class="md-sub">B-Stock listings (один файл = всі лоти) або окремі манифести · можна кілька</div>
+    </label>
+
+    <div class="margin-ctrl">
+      <label>Цільова маржа %</label>
+      <input type="number" id="target-margin" value="20" step="1" min="1" max="50">
+      <button class="btn btn-ghost btn-sm" onclick="applyTargetMargin()">Встановити ціни під маржу</button>
+      <span style="font-size:11px;color:var(--t3);font-family:'JetBrains Mono',monospace">авто-розрахунок auction $ від RRP</span>
+      <div style="width:1px;height:20px;background:var(--b2)"></div>
+      <button class="btn btn-ghost btn-sm" onclick="applyLastStatsPrices()" title="Заповнює auction price з останніх даних статистики для кожної моделі/грейду">
+        📊 По останнім цінам зі статистики
+      </button>
+      <span id="stats-fill-status" style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--t2)"></span>
+    </div>
+
+    <div id="mq-list"></div>
+    <div style="display:flex;gap:8px;align-items:center;margin-top:10px" id="import-actions" style="display:none">
+      <button class="btn btn-acc" onclick="confirmPrices()">Додати в лоти →</button>
+      <button class="btn btn-ghost" onclick="clearQueue()">Очистити</button>
+      <span id="import-status" style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--t2)"></span>
+    </div>
+  </div>
+
+  <div class="card" id="price-card" style="display:none">
+    <div class="card-inner" style="padding-bottom:4px">
+      <div class="card-title" style="margin-bottom:0">Редагування цін та repair</div>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="it">
+        <thead><tr>
+          <th style="width:32px"><input type="checkbox" id="chk-all" onclick="toggleAllWatch(this)" title="Виділити всі"></th><th>Lot ID</th><th>Модель</th><th>Гр.</th><th>Пам'ять</th>
+          <th>Qty</th><th>RRP ₴</th><th>Auction $/ед.</th><th>Repair %</th><th>Маржа</th>
+        </tr></thead>
+        <tbody id="price-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══ DETAIL PANE ══ -->
+<div id="pane-detail" class="pane">
+  <div id="detail-content">
+    <div class="empty-state"><div class="empty-icon">👆</div><div class="empty-title">Обери лот зі списку</div></div>
+  </div>
+</div>
+
+<!-- ══ FOODCHAIN PANE ══ -->
+<div id="pane-fc" class="pane">
+  <div class="card card-inner">
+    <div class="fc-head">USA Costs — auction × (1 + cost%) / (1 − invoice%)</div>
+    <div class="g4" style="margin-bottom:10px">
+      <div class="field"><label>Cost % від закупки</label><input type="number" id="fc-usa1" value="4.8" step="0.1" oninput="recalcAll()"></div>
+      <div class="field"><label>Invoice % від PL</label><input type="number" id="fc-usa2" value="4.5" step="0.1" oninput="recalcAll()"></div>
+    </div>
+    <div class="divider"></div>
+    <div class="fc-head">PL Costs</div>
+    <div class="g4" style="margin-bottom:10px">
+      <div class="field"><label>Freight $</label><input type="number" id="fc-plf" value="2" step="0.5" oninput="recalcAll()"></div>
+      <div class="field"><label>Transit+WHS %</label><input type="number" id="fc-plt" value="0.3" step="0.05" oninput="recalcAll()"></div>
+      <div class="field"><label>Сервісний збір</label><div style="padding:7px 9px;background:var(--s2);border:1px solid var(--b1);border-radius:6px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--t3)">s4×0.97×0.003 (цикл.)</div></div>
+      <div class="field"><label>Broker %</label><input type="number" id="fc-plb" value="0.25" step="0.05" oninput="recalcAll()"></div>
+    </div>
+    <div class="divider"></div>
+    <div class="fc-head">UA Costs (база = inv price to UA)</div>
+    <div class="g4" style="margin-bottom:10px">
+      <div class="field"><label>Freight $</label><input type="number" id="fc-uaf" value="0.5" step="0.1" oninput="recalcAll()"></div>
+      <div class="field"><label>Ins %</label><input type="number" id="fc-uains" value="0.25" step="0.05" oninput="recalcAll()"></div>
+      <div class="field"><label>WHS handling %</label><input type="number" id="fc-uawhs" value="0.20" step="0.05" oninput="recalcAll()"></div>
+      <div class="field"><label>Grading $</label><input type="number" id="fc-grad" value="4" step="0.5" oninput="recalcAll()"></div>
+      <div class="field"><label>Box+Acc $</label><input type="number" id="fc-box" value="5" step="0.5" oninput="recalcAll()"></div>
+      <div class="field"><label>Production GP %</label><input type="number" id="fc-gp" value="2.5" step="0.1" oninput="recalcAll()"></div>
+      <div class="field"><label>RMA %</label><input type="number" id="fc-rma" value="2.0" step="0.1" oninput="recalcAll()"></div>
+      <div class="field"><label>Freight 2 $</label><input type="number" id="fc-uaf2" value="0.2" step="0.05" oninput="recalcAll()"></div>
+      <div class="field"><label>Ins 2 %</label><input type="number" id="fc-uains2" value="0.1" step="0.05" oninput="recalcAll()"></div>
+    </div>
+    <div class="divider"></div>
+    <div class="fc-head">VAT & Tax</div>
+    <div class="g4" style="margin-bottom:10px">
+      <div class="field"><label>VAT</label><input type="number" id="fc-vat" value="1.2" step="0.01" oninput="recalcAll()"><div class="hint">1.2 = 20%</div></div>
+      <div class="field"><label>Tax increase %</label><input type="number" id="fc-tax" value="0.6" step="0.05" oninput="recalcAll()"><div class="hint">від Inv.VAT $, цикл.</div></div>
+    </div>
+    <div class="divider"></div>
+    <div style="background:var(--s2);border:1px solid var(--b1);border-radius:6px;padding:10px 14px;margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+        <span style="font-size:10px;font-weight:600;color:var(--t3);letter-spacing:.08em;text-transform:uppercase">Google Sheets</span>
+        <span style="font-size:10px;color:var(--t2);font-family:'JetBrains Mono',monospace;flex:1">Repair % + RRP ₴</span>
+        <button id="sync-all-btn" class="btn btn-ghost btn-sm" onclick="syncAllFromSheet()">🔄 З Google Sheets</button>
+        <span id="sync-all-status" style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--t2)"></span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span style="font-size:10px;color:var(--t3)">або з файлу Excel/CSV:</span>
+        <label style="cursor:pointer;position:relative">
+          <input type="file" accept=".xlsx,.xls,.csv" id="fc-file-upload" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%">
+          <span class="btn btn-ghost btn-sm" style="pointer-events:none">📂 Завантажити Excel / CSV</span>
+        </label>
+        <span id="fc-file-status" style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--t2)"></span>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="fc-head">Repair % по грейду (default)</div>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:11px">
+        <thead><tr>
+          <th style="font-size:9px;font-weight:600;color:var(--t3);padding:5px 8px;border-bottom:1px solid var(--b1);text-align:left">Модель</th>
+          <th style="font-size:9px;font-weight:600;color:var(--t3);padding:5px 8px;border-bottom:1px solid var(--b1);text-align:center">A+</th>
+          <th style="font-size:9px;font-weight:600;color:var(--t3);padding:5px 8px;border-bottom:1px solid var(--b1);text-align:center">AA+</th>
+          <th style="font-size:9px;font-weight:600;color:var(--t3);padding:5px 8px;border-bottom:1px solid var(--b1);text-align:center">B+</th>
+          <th style="font-size:9px;font-weight:600;color:var(--t3);padding:5px 8px;border-bottom:1px solid var(--b1);text-align:center">C</th>
+        </tr></thead>
+        <tbody id="repair-tbody"></tbody>
+      </table>
+    </div>
+    <div class="divider"></div>
+    <div class="fc-head">RRP ₴ / ед. (редагується)</div>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:11px" id="rrp-table">
+        <thead><tr>
+          <th style="font-size:9px;font-weight:600;color:var(--t3);padding:5px 8px;border-bottom:1px solid var(--b1);text-align:left">Модель + Пам'ять</th>
+          <th style="font-size:9px;font-weight:600;color:var(--t3);padding:5px 8px;border-bottom:1px solid var(--b1);text-align:right">RRP ₴</th>
+        </tr></thead>
+        <tbody id="rrp-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div id="pane-stats" class="pane">
+
+  <!-- Controls row -->
+  <div style="background:var(--s1);border:1px solid var(--b1);border-radius:8px;padding:10px 14px;margin-bottom:10px">
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+      <span style="font-size:10px;font-weight:600;color:var(--t3);letter-spacing:.08em;text-transform:uppercase">Google Sheets</span>
+      <code style="font-size:10px;color:var(--t2);background:var(--s2);padding:2px 7px;border-radius:4px;font-family:'JetBrains Mono',monospace;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="https://docs.google.com/spreadsheets/d/e/2PACX-1vSlZ2tNCZxveIYSqGL5c3seOzQm7Y3rWigaOJLiDkwzCaPIsM4x8KaXv17b3BFeqXeOzj3-L1PZwROH/pub?gid=0&single=true&output=csv">…/pub?gid=0&output=csv</code>
+      <button class="btn btn-ghost btn-sm" onclick="loadStatsFromSheet()" style="white-space:nowrap">🔄 Оновити</button>
+      <span id="stats-load-status" style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--t2)">не завантажено</span>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span style="font-size:10px;color:var(--t3)">або завантажити CSV вручну:</span>
+      <label style="cursor:pointer;position:relative">
+        <input type="file" accept=".csv" id="stats-csv-upload" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%">
+        <span class="btn btn-ghost btn-sm" style="pointer-events:none">📂 Вибрати файл</span>
+      </label>
+      <span id="stats-file-name" style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--t2)"></span>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+    <div style="font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--t3)">Вид:</div>
+    <button class="filter-btn on" id="view-trend"     onclick="setStatView('trend',this)">Динаміка цін</button>
+    <button class="filter-btn"   id="view-compare"   onclick="setStatView('compare',this)">Порівняння моделей</button>
+    <button class="filter-btn"   id="view-grade"     onclick="setStatView('grade',this)">A+ vs B+</button>
+    <button class="filter-btn"   id="view-heatmap"   onclick="setStatView('heatmap',this)">Heatmap</button>
+    <button class="filter-btn"   id="view-matrix"    onclick="setStatView('matrix',this)">Матриця</button>
+    <button class="filter-btn"   id="view-movers"    onclick="setStatView('movers',this)">Топ рухів</button>
+    <button class="filter-btn"   id="view-table"     onclick="setStatView('table',this)">Таблиця</button>
+  </div>
+
+  <!-- TREND VIEW -->
+  <div id="stats-trend" class="stats-view">
+    <div class="card card-inner" style="margin-bottom:10px">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <div class="field" style="min-width:200px">
+          <label>Модель</label>
+          <select id="trend-model" onchange="renderTrend()"></select>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;margin-top:14px">
+          <label style="font-size:11px;color:var(--t2);display:flex;align-items:center;gap:4px">
+            <input type="checkbox" id="trend-ap" checked onchange="renderTrend()"> A+
+          </label>
+          <label style="font-size:11px;color:var(--t2);display:flex;align-items:center;gap:4px">
+            <input type="checkbox" id="trend-bp" checked onchange="renderTrend()"> B+
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="padding:16px">
+      <canvas id="trend-chart" height="320"></canvas>
+    </div>
+    <div id="trend-stats" class="card card-inner" style="margin-top:10px"></div>
+  </div>
+
+  <!-- COMPARE VIEW -->
+  <div id="stats-compare" class="stats-view" style="display:none">
+    <div class="card card-inner" style="margin-bottom:10px">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <div class="field" style="min-width:180px">
+          <label>Грейд</label>
+          <select id="cmp-grade" onchange="renderCompare()">
+            <option value="A+">A+</option>
+            <option value="B+">B+</option>
+          </select>
+        </div>
+        <div class="field" style="min-width:180px">
+          <label>Дата (або всі)</label>
+          <select id="cmp-date" onchange="renderCompare()">
+            <option value="">Остання дата</option>
+          </select>
+        </div>
+        <div class="field" style="min-width:180px">
+          <label>Фільтр сімейства</label>
+          <select id="cmp-family" onchange="renderCompare()">
+            <option value="">Всі</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="padding:16px">
+      <canvas id="compare-chart" height="380"></canvas>
+    </div>
+  </div>
+
+  <!-- GRADE COMPARE VIEW -->
+  <div id="stats-grade" class="stats-view" style="display:none">
+    <div class="card card-inner" style="margin-bottom:10px">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <div class="field" style="min-width:200px">
+          <label>Модель</label>
+          <select id="grade-model" onchange="renderGradeCompare()"></select>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="padding:16px">
+      <canvas id="grade-chart" height="300"></canvas>
+    </div>
+    <div id="grade-diff-table" class="card card-inner" style="margin-top:10px"></div>
+  </div>
+
+  <!-- HEATMAP VIEW -->
+  <div id="stats-heatmap" class="stats-view" style="display:none">
+    <div class="card card-inner" style="margin-bottom:10px">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <div class="field" style="min-width:130px">
+          <label>Грейд</label>
+          <select id="hm-grade" onchange="renderHeatmap()">
+            <option value="A+">A+</option>
+            <option value="B+">B+</option>
+            <option value="both">A+ і B+</option>
+          </select>
+        </div>
+        <div class="field" style="min-width:150px">
+          <label>Метрика</label>
+          <select id="hm-metric" onchange="renderHeatmap()">
+            <option value="price">Ціна $ (остання)</option>
+            <option value="change_week">Зміна % тиждень</option>
+            <option value="change_custom">Зміна % між датами</option>
+            <option value="change_all">Зміна % весь період</option>
+            <option value="volatility">Волатильність %</option>
+          </select>
+        </div>
+        <div id="hm-date-from-wrap" class="field" style="min-width:140px;display:none">
+          <label>Дата від</label>
+          <select id="hm-date-from" onchange="renderHeatmap()"></select>
+        </div>
+        <div id="hm-date-to-wrap" class="field" style="min-width:140px;display:none">
+          <label>Дата до</label>
+          <select id="hm-date-to" onchange="renderHeatmap()"></select>
+        </div>
+        <div class="field" style="min-width:130px">
+          <label>Сімейство</label>
+          <select id="hm-family" onchange="renderHeatmap()">
+            <option value="">Всі</option>
+          </select>
+        </div>
+        <div class="field" style="min-width:100px">
+          <label>Розмір</label>
+          <select id="hm-size" onchange="renderHeatmap()">
+            <option value="normal">Звичайний</option>
+            <option value="compact">Компактний</option>
+            <option value="large">Великий</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="card card-inner" style="margin-bottom:10px" id="hm-legend"></div>
+    <div class="card card-inner">
+      <div id="heatmap-grid" style="overflow-x:auto"></div>
+    </div>
+  </div>
+
+<!-- MATRIX VIEW -->
+  <div id="stats-matrix" class="stats-view" style="display:none">
+    <div class="card card-inner" style="margin-bottom:10px">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <div class="field" style="min-width:130px">
+          <label>Грейд</label>
+          <select id="mx-grade" onchange="renderMatrix()">
+            <option value="A+">A+</option>
+            <option value="B+">B+</option>
+          </select>
+        </div>
+        <div class="field" style="min-width:160px">
+          <label>Сімейство</label>
+          <select id="mx-family" onchange="renderMatrix()">
+            <option value="">Всі</option>
+          </select>
+        </div>
+        <div class="field" style="min-width:130px">
+          <label>Відображення</label>
+          <select id="mx-display" onchange="renderMatrix()">
+            <option value="pct">Зміна %</option>
+            <option value="abs">Зміна $</option>
+            <option value="price">Абс. ціна $</option>
+          </select>
+        </div>
+        <div class="field" style="min-width:130px">
+          <label>Порівняння</label>
+          <select id="mx-compare" onchange="renderMatrix()">
+            <option value="prev">Тиждень до тижня</option>
+            <option value="first">Від першої дати</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="card card-inner" style="overflow-x:auto">
+      <div id="matrix-grid"></div>
+    </div>
+  </div>
+
+  <!-- MOVERS VIEW -->
+  <div id="stats-movers" class="stats-view" style="display:none">
+    <div class="card card-inner" style="margin-bottom:10px">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <div class="field" style="min-width:160px">
+          <label>Період</label>
+          <select id="mv-period" onchange="renderMovers()">
+            <option value="week">Останній тиждень</option>
+            <option value="month">Останній місяць</option>
+            <option value="all">Весь період</option>
+            <option value="custom">Між датами</option>
+          </select>
+        </div>
+        <div id="mv-date-from-wrap" class="field" style="min-width:140px;display:none">
+          <label>Від</label>
+          <select id="mv-date-from" onchange="renderMovers()"></select>
+        </div>
+        <div id="mv-date-to-wrap" class="field" style="min-width:140px;display:none">
+          <label>До</label>
+          <select id="mv-date-to" onchange="renderMovers()"></select>
+        </div>
+        <div class="field" style="min-width:120px">
+          <label>Грейд</label>
+          <select id="mv-grade" onchange="renderMovers()">
+            <option value="">Обидва</option>
+            <option value="A+">A+</option>
+            <option value="B+">B+</option>
+          </select>
+        </div>
+        <div class="field" style="min-width:80px">
+          <label>Top N</label>
+          <select id="mv-top" onchange="renderMovers()">
+            <option value="10">10</option>
+            <option value="20">20</option>
+            <option value="all">Всі</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px" id="movers-grid"></div>
+  </div>
+
+<!-- TABLE VIEW -->
+  <div id="stats-table" class="stats-view" style="display:none">
+    <div class="card card-inner" style="margin-bottom:10px">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <div class="field" style="min-width:150px">
+          <label>Грейд</label>
+          <select id="tbl-grade" onchange="renderStatsTable()">
+            <option value="">Всі</option>
+            <option value="A+">A+</option>
+            <option value="B+">B+</option>
+          </select>
+        </div>
+        <input class="fsearch" id="tbl-search" placeholder="Пошук моделі…" oninput="renderStatsTable()" style="margin-top:14px">
+      </div>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="overflow-x:auto">
+        <table class="lt" id="stats-tbl">
+          <thead><tr>
+            <th>Модель</th><th>Грейд</th>
+            <th id="tbl-th-first">Перша дата</th>
+            <th id="tbl-th-last">Остання дата</th>
+            <th>Min $</th><th>Max $</th><th>Avg $</th>
+            <th>Зміна $</th><th>Зміна %</th><th>Волатильність</th>
+          </tr></thead>
+          <tbody id="stats-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div id="pane-watchlist" class="pane">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+    <div style="font-size:16px;font-weight:600">⭐ Мій список</div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost btn-sm" onclick="clearWatchlist()">Очистити список</button>
+      <button class="btn btn-ghost btn-sm" onclick="exportWatchlistCSV()">⬇ Експорт CSV</button>
+    </div>
+  </div>
+  <div id="watchlist-summary" class="summary-bar" style="margin-bottom:12px"></div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div style="overflow-x:auto">
+      <table class="lt" id="watchlist-table">
+        <thead><tr>
+          <th>Lot ID</th><th>Модель</th><th>Гр.</th><th>Пам'ять</th><th>Qty</th>
+          <th>Auction $/ед.</th><th>Full Price $</th>
+          <th>Інв. ₴/ед.</th><th>RRP ₴/ед.</th><th>Маржа</th><th>Дата</th>
+          <th></th>
+        </tr></thead>
+        <tbody id="watchlist-tbody"></tbody>
+      </table>
+    </div>
+    <div id="watchlist-empty" class="empty-state">
+      <div class="empty-icon">⭐</div>
+      <div class="empty-title">Список порожній</div>
+      <div class="empty-sub">Відмічай лоти чекбоксом у вкладці «Лоти»</div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /body -->
+
+<script>
+// ═══ RRP ═══
+const RRP={"iPhone 13 128Gb": 19305.02, "iPhone 13 256Gb": 20971.02, "iPhone 13 512Gb": 22637.02, "iPhone 13 Pro 128GB": 24107.02, "iPhone 13 Pro 1Tb": 28811.02, "iPhone 13 Pro 256GB": 26655.02, "iPhone 13 Pro 512GB": 28419.02, "iPhone 13 Pro Max 128GB": 27145.02, "iPhone 13 Pro Max 1TB": 32339.02, "iPhone 13 Pro Max 256GB": 29889.02, "iPhone 13 Pro Max 512Gb": 30869.02, "iPhone 14 128Gb": 20677.02, "iPhone 14 256Gb": 23323.02, "iPhone 14 512Gb": 23519.02, "iPhone 14 Pro 128GB": 27537.02, "iPhone 14 Pro 1TB": 35279.02, "iPhone 14 Pro 256GB": 29791.02, "iPhone 14 Pro 512GB": 31457.02, "iPhone 14 Pro Max 128GB": 30575.02, "iPhone 14 Pro Max 1TB": 38219.02, "iPhone 14 Pro Max 256GB": 32731.02, "iPhone 14 Pro Max 512GB": 34397.02, "iPhone 15 128GB": 27733.02, "iPhone 15 256GB": 30869.02, "iPhone 15 512Gb": 31849.02, "iPhone 15 Pro 128Gb": 34103.02, "iPhone 15 Pro 1Tb": 41943.02, "iPhone 15 Pro 256GB": 37043.02, "iPhone 15 Pro 512Gb": 39493.02, "iPhone 15 Pro Max 1Tb": 48019.02, "iPhone 15 Pro Max 256GB": 41747.02, "iPhone 15 Pro Max 512GB": 44393.02, "iPhone 16 128Gb": 32482.1, "iPhone 16 256Gb": 35208.46, "iPhone 16 512Gb": 38410.12, "iPhone 16 Pro 128Gb": 43805.02, "iPhone 16 Pro 1Tb": 56741.02, "iPhone 16 Pro 256Gb": 48313.02, "iPhone 16 Pro 512Gb": 52821.02, "iPhone 16 Pro Max 1Tb": 60465.02, "iPhone 16 Pro Max 256Gb": 50077.02, "iPhone 16 Pro Max 512Gb": 53507.02, "iPhone 16E 128GB": 24499.02, "iPhone 16E 256GB": 29400.0, "iPhone 16E 512GB": 32340.0, "iPhone 17 256GB": 38415.02, "iPhone 17 512GB": 47235.02, "iPhone 17 Pro 1TB": 71147.02, "iPhone 17 Pro 256GB": 53507.02, "iPhone 17 Pro 512GB": 62327.02, "iPhone 17 Pro Max 1TB": 79379.02, "iPhone 17 Pro Max 256GB": 61283.32, "iPhone 17 Pro Max 2TB": 87562.02, "iPhone 17 Pro Max 512GB": 70559.02, "iPhone Air 1TB": 58799.02, "iPhone Air 256GB": 41159.02, "iPhone Air 512GB": 49979.02};
+
+// ═══ REPAIR [A+, AA+, B+, C] ═══
+const REPAIR=[{"m": "iPhone 17 Pro Max", "r": [0.03, 0.02, 0.05, 0.25]}, {"m": "iPhone 17 Pro", "r": [0.03, 0.02, 0.055, 0.25]}, {"m": "iPhone 17", "r": [0.03, 0.02, 0.06, 0.3]}, {"m": "iPhone Air", "r": [0.03, 0.02, 0.06, 0.3]}, {"m": "iPhone 16 Pro Max", "r": [0.03, 0.02, 0.06, 0.3]}, {"m": "iPhone 16 Pro", "r": [0.04, 0.02, 0.07, 0.35]}, {"m": "iPhone 16E", "r": [0.04, 0.02, 0.08, 0.4]}, {"m": "iPhone 16", "r": [0.04, 0.02, 0.08, 0.4]}, {"m": "iPhone 15 Pro Max", "r": [0.04, 0.02, 0.08, 0.4]}, {"m": "iPhone 15 Pro", "r": [0.05, 0.02, 0.09, 0.45]}, {"m": "iPhone 15", "r": [0.06, 0.02, 0.1, 0.45]}, {"m": "iPhone 14 Pro Max", "r": [0.08, 0.05, 0.11, 0.45]}, {"m": "iPhone 14 Pro", "r": [0.09, 0.05, 0.12, 0.45]}, {"m": "iPhone 14", "r": [0.1, 0.05, 0.15, 0.5]}, {"m": "iPhone 13 Pro Max", "r": [0.08, 0.04, 0.15, 0.5]}, {"m": "iPhone 13 Pro", "r": [0.08, 0.04, 0.17, 0.5]}, {"m": "iPhone 13", "r": [0.08, 0.04, 0.2, 0.5]}];
+
+function renderRRPTable(){
+  const tbody = document.getElementById('rrp-tbody');
+  if(!tbody) return;
+  tbody.innerHTML = '';
+  const keys = Object.keys(RRP).sort();
+  keys.forEach(key => {
+    const tr = document.createElement('tr');
+    const nameTd = document.createElement('td');
+    nameTd.textContent = key;
+    nameTd.style.cssText = 'padding:4px 8px;border-bottom:1px solid var(--b1);font-size:11px;color:var(--t2);white-space:nowrap';
+    tr.appendChild(nameTd);
+
+    const valTd = document.createElement('td');
+    valTd.style.cssText = 'padding:4px 8px;border-bottom:1px solid var(--b1);text-align:right';
+    const inp = document.createElement('input');
+    inp.type = 'number';
+    inp.value = RRP[key].toFixed(2);
+    inp.step = '100';
+    inp.style.cssText = 'width:110px;background:var(--s2);border:1px solid var(--b1);border-radius:4px;padding:3px 7px;color:var(--t1);font-family:JetBrains Mono,monospace;font-size:11px;text-align:right';
+    inp.addEventListener('input', function(){
+      const v = parseFloat(this.value);
+      if(v > 0){
+        RRP[key] = v;
+        // update rrp in all lots that use this key
+        lots.forEach(lot => {
+          const lotKey = lot.model + ' ' + lot.cap;
+          // check all cap variants
+          const vars = [lot.cap, lot.cap.replace('GB','Gb').replace('TB','Tb')];
+          if(vars.some(cv => lot.model+' '+cv === key)){
+            lot.rrp = v;
+          }
+        });
+        recalcAll();
+      }
+    });
+    valTd.appendChild(inp);
+    tr.appendChild(valTd);
+    tbody.appendChild(tr);
+  });
+}
+
+function renderRepairTable(){
+  const tbody=document.getElementById('repair-tbody');
+  if(!tbody) return;
+  tbody.innerHTML='';
+  REPAIR.forEach(function(m,mi){
+    const tr=document.createElement('tr');
+    const nameTd=document.createElement('td');
+    nameTd.textContent=m.m;
+    nameTd.style.cssText='padding:4px 8px;border-bottom:1px solid var(--b1);font-size:11px;color:var(--t2)';
+    tr.appendChild(nameTd);
+    [0,1,2,3].forEach(function(gi){
+      const td=document.createElement('td');
+      td.style.cssText='padding:4px 8px;border-bottom:1px solid var(--b1);text-align:center';
+      const inp=document.createElement('input');
+      inp.type='number';inp.value=(m.r[gi]*100).toFixed(1);inp.step='0.1';inp.min='0';inp.max='100';
+      inp.style.cssText='width:60px;background:var(--s2);border:1px solid var(--b1);border-radius:4px;padding:3px 6px;color:var(--t1);font-family:JetBrains Mono,monospace;font-size:11px;text-align:center';
+      inp.addEventListener('input',function(){REPAIR[mi].r[gi]=+this.value/100;recalcAll();});
+      td.appendChild(inp);tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+}
+
+const GI={'A+':0,'AA+':1,'B+':2,'C':3};
+function getDefRepair(model,grade){
+  const gi=GI[grade]||0;
+  const f=REPAIR.find(x=>model.includes(x.m));
+  return f?f.r[gi]:0.04;
+}
+
+function getRRP(model,cap){
+  const vs=[cap,cap.replace('GB','Gb').replace('TB','Tb'),cap.replace('Gb','GB').replace('Tb','TB')];
+  for(const cv of vs){const k=model+' '+cv;if(RRP[k])return RRP[k];}
+  for(const k of Object.keys(RRP)){
+    if(k.startsWith(model)){const n=cap.replace(/\D/g,'');if(n&&k.replace(/\D/g,'').includes(n))return RRP[k];}
+  }
+  return 0;
+}
+
+function getFamily(str){
+  const fs=["iPhone 17 Pro Max","iPhone 17 Pro","iPhone 17","iPhone Air",
+    "iPhone 16 Pro Max","iPhone 16 Pro","iPhone 16E","iPhone 16",
+    "iPhone 15 Pro Max","iPhone 15 Pro","iPhone 15",
+    "iPhone 14 Pro Max","iPhone 14 Pro","iPhone 14",
+    "iPhone 13 Pro Max","iPhone 13 Pro","iPhone 13"];
+  for(const f of fs) if(str.includes(f)) return f;
+  return str;
+}
+
+// ═══ FC ═══
+function gv(id){return parseFloat(document.getElementById(id).value)||0;}
+function getFC(){return{
+  usa1:gv('fc-usa1')/100,usa2:gv('fc-usa2')/100,
+  plf:gv('fc-plf'),plt:gv('fc-plt')/100,plb:gv('fc-plb')/100,
+  uaf:gv('fc-uaf'),uains:gv('fc-uains')/100,uawhs:gv('fc-uawhs')/100,
+  grad:gv('fc-grad'),box:gv('fc-box'),gp:gv('fc-gp')/100,
+  rma:gv('fc-rma')/100,uaf2:gv('fc-uaf2'),uains2:gv('fc-uains2')/100,
+  vat:gv('fc-vat'),tax:gv('fc-tax')/100,
+};}
+
+// ═══ CALC ═══
+function calcInv(auction,repairPct,fc){
+  const s2=auction*(1+fc.usa1)/(1-fc.usa2);
+  const aft=s2+fc.plf;
+  let s3=aft,s4=0,s5=0,svc=0;
+  for(let i=0;i<200;i++){
+    svc=s4*0.97*0.003;
+    s3=aft+aft*fc.plt+svc+aft*fc.plb;
+    const ua=s3+fc.uaf+s3*fc.uains+s3*fc.uawhs+fc.grad+fc.box+s3*repairPct+s3*fc.gp+s3*fc.rma+fc.uaf2+s3*fc.uains2;
+    s4=ua/(1-fc.vat*fc.tax);
+    s5=s4*fc.vat;
+  }
+  return{s2,s3,s4,s5,svc,repairAmt:s3*repairPct};
+}
+
+// Binary search: find auction price for target margin
+function auctionForMargin(rrp,repairPct,targetMargin,rate,fc){
+  if(!rrp) return 0;
+  const targetS5=rrp*(1-targetMargin)/rate;
+  let lo=1,hi=targetS5;
+  for(let i=0;i<100;i++){
+    const mid=(lo+hi)/2;
+    const{s5}=calcInv(mid,repairPct,fc);
+    if(s5<targetS5) lo=mid; else hi=mid;
+  }
+  return(lo+hi)/2;
+}
+
+// Proportional distribution by RRP
+function distributeByRRP(skus,avgAuction){
+  const totalRRP=skus.reduce((s,l)=>s+(l.rrp||0)*l.qty,0);
+  const totalQty=skus.reduce((s,l)=>s+l.qty,0);
+  if(!totalRRP||!totalQty) return skus.map(l=>({...l,auctionCalc:avgAuction}));
+  const avgRRP=totalRRP/totalQty;
+  return skus.map(l=>({...l,auctionCalc:l.rrp?avgAuction*(l.rrp/avgRRP):avgAuction}));
+}
+
+// ═══ STATE ═══
+let lots=[];
+const watchlist = new Set(); // Set of lotIds
+const lotPrices={};  // lotId → avgAuction
+let csvQueue=[];
+const qMap={};
+let curFilter='all',curDetail=null;
+let curSort={key:'lotId',dir:1};  // key: lotId|model|endDate|margin
+let selModels=new Set();  // empty = show all
+
+// ═══ FORMAT ═══
+// ── Source breakdown badges ──
+const SRC_COLORS={
+  'Trade-In':   ['rgba(78,255,224,.12)','var(--acc2)'],
+  'Insurance':  ['rgba(212,255,78,.12)','var(--acc)'],
+  'Warranty':   ['rgba(78,255,154,.12)','var(--green)'],
+  'Customer Return':['rgba(255,184,78,.12)','var(--amber)'],
+  'Refurbished':['rgba(168,139,250,.12)','#a78bfa'],
+  'Demo':       ['rgba(248,113,113,.12)','#f87171'],
+};
+function srcBadges(sources){
+  if(!sources||!Object.keys(sources).length) return '';
+  const total=Object.values(sources).reduce((s,v)=>s+v,0);
+  return Object.entries(sources)
+    .sort((a,b)=>b[1]-a[1])
+    .map(([s,q])=>{
+      const[bg,clr]=SRC_COLORS[s]||['rgba(255,255,255,.06)','var(--t3)'];
+      const short={'Trade-In':'TI','Insurance':'Ins','Warranty':'War','Customer Return':'CR','Refurbished':'Ref','Demo':'Demo'}[s]||s.slice(0,3);
+      const pct=total>0?Math.round(q/total*100)+'%':'';
+      return '<span style="display:inline-flex;align-items:center;gap:3px;background:'+bg+';color:'+clr+';font-size:9px;padding:1px 5px;border-radius:3px;font-family:JetBrains Mono,monospace;white-space:nowrap" title="'+s+': '+q+' шт">'+short+' <b>'+pct+'</b></span>';
+    }).join(' ');
+}
+function srcBadgesMerged(items){
+  const merged={};
+  items.forEach(lot=>Object.entries(lot.sources||{}).forEach(([s,q])=>{ merged[s]=(merged[s]||0)+q; }));
+  return srcBadges(merged);
+}
+
+const fusd=(n,d=2)=>'$'+n.toLocaleString('uk-UA',{minimumFractionDigits:d,maximumFractionDigits:d});
+const fuah=n=>'₴'+Math.round(n).toLocaleString('uk-UA');
+const fpct=n=>(n*100).toFixed(2)+'%';
+const fclr=n=>n>0.05?'pos':n<0?'neg':'warn';
+const gbadge=g=>g==='A+'?'b-ap':g==='AA+'?'b-aap':g==='B+'?'b-bp':'b-cp';
+
+// ═══ CSV PARSE (listings + manifest) ═══
+function parseFile(text,filename){
+  let lines=text.split('\n').filter(l=>l.trim());
+  if(lines.length<2) return[];
+
+  // Detect "single-column wrapped CSV" (Google Sheets lot format):
+  // each row is one cell containing a full CSV line
+  // e.g. first line: "Lot #,Qty,OEM,Model,..."  (with outer quotes)
+  // Unwrap: strip outer quotes and use inner content as real CSV
+  const firstLine = lines[0].trim();
+  if(firstLine.startsWith('"') && firstLine.endsWith('"') &&
+     firstLine.slice(1,-1).includes(',') &&
+     firstLine.slice(1,-1).toLowerCase().includes('lot')){
+    lines = lines.map(l=>{
+      l = l.trim();
+      if(l.startsWith('"') && l.endsWith('"')) return l.slice(1,-1);
+      return l;
+    });
+  }
+
+  const headers=lines[0].split(',').map(h=>h.trim().replace(/"/g,'').toLowerCase());
+  const gi=n=>headers.findIndex(h=>h.includes(n));
+
+  // Detect type: listings file has 'lot #', manifest has 'lot id'
+  const isListings = headers.some(h=>h==='lot #');
+  const iLot  = isListings ? gi('lot #') : gi('lot');
+  const iModel= gi('model');
+  const iQty  = gi('qty');
+  const iCap  = gi('capacity');
+  const iGrade= gi('grade');
+  const iEnd  = gi('end date');
+  const iSrc  = gi('inventory source');
+
+  const rows=lines.slice(1).map(l=>{
+    const c=l.split(',').map(c=>c.trim().replace(/"/g,''));
+    return{lot:c[iLot]||'',model:c[iModel]||'',qty:parseInt(c[iQty])||0,cap:c[iCap]||'256GB',grade:c[iGrade]||'A+',endDate:iEnd>=0?c[iEnd]||'':'',src:iSrc>=0?c[iSrc]||'':'Unknown'};
+  }).filter(r=>r.lot&&r.qty>0&&r.model);
+
+  if(!rows.length) return[];
+
+  // Group by lot+cap
+  const byLotCap={};
+  rows.forEach(r=>{
+    const key=r.lot+'::'+r.cap;
+    if(!byLotCap[key]) byLotCap[key]={lot:r.lot,model:r.model,grade:r.grade,cap:r.cap,qty:0,endDate:r.endDate||'',sources:{}};
+    byLotCap[key].qty+=r.qty;
+    if(r.src){ byLotCap[key].sources[r.src]=(byLotCap[key].sources[r.src]||0)+r.qty; }
+  });
+
+  return Object.values(byLotCap).map(v=>{
+    const grade=v.grade.replace('(T)','').trim();
+    const normGrade=grade.includes('AA')?'AA+':grade.includes('A+')?'A+':grade.includes('B+')?'B+':grade.includes('C')?'C':'A+';
+    const model=getFamily(v.model);
+    return{lotId:v.lot,model,grade:normGrade,cap:v.cap,qty:v.qty,filename,
+           repair:getDefRepair(model,normGrade),auction:0,rrp:getRRP(model,v.cap),endDate:v.endDate||'',sources:v.sources||{}};
+  });
+}
+
+// ═══ FILE HANDLING ═══
+document.getElementById('csv-input').addEventListener('change',function(e){
+  handleFiles(Array.from(e.target.files));e.target.value='';
+});
+
+function handleFiles(files){
+  let p=files.length;if(!p)return;
+  files.forEach(file=>{
+    const r=new FileReader();
+    r.onload=ev=>{parseFile(ev.target.result,file.name).forEach(item=>{csvQueue.push(item);qMap[item.lotId+'::'+item.cap]=item;});p--;if(p===0)renderQueue();};
+    r.readAsText(file);
+  });
+}
+
+function renderQueue(){
+  const list=document.getElementById('mq-list');
+  const actions=document.getElementById('import-actions');
+  const pc=document.getElementById('price-card');
+  if(!csvQueue.length){list.innerHTML='';actions.style.display='none';pc.style.display='none';return;}
+  actions.style.display='flex';
+  const byFile={};
+  csvQueue.forEach(i=>{if(!byFile[i.filename])byFile[i.filename]=[];byFile[i.filename].push(i);});
+  list.innerHTML=Object.entries(byFile).map(([fn,items])=>{
+    const lots=[...new Set(items.map(i=>i.lotId))];
+    const totalQty=items.reduce((s,i)=>s+i.qty,0);
+    return`<div style="background:var(--s2);border:1px solid var(--b1);border-radius:6px;padding:9px 13px;margin-bottom:6px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--t2);flex:1">${fn}</div>
+      <div style="font-size:11px;color:var(--t1)">${lots.length} лотів</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--t2)">${totalQty} шт</div>
+      <div style="font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--green)">✓ готово</div>
+    </div>`;
+  }).join('');
+  renderPriceTable();
+  pc.style.display='';
+}
+
+function renderPriceTable(){
+  const tbody=document.getElementById('price-tbody');
+  const fc=getFC(),rate=gv('g-rate');
+  tbody.innerHTML='';
+  const byLot={};
+  csvQueue.forEach(item=>{if(!byLot[item.lotId])byLot[item.lotId]=[];byLot[item.lotId].push(item);});
+  Object.entries(byLot).forEach(([lotId,items])=>{
+    const htr=document.createElement('tr');htr.className='it-grp';
+    htr.innerHTML=`<td colspan="9">${lotId} · ${items[0].model} · ${items[0].grade} · ${items.reduce((s,i)=>s+i.qty,0)} шт</td>`;
+    tbody.appendChild(htr);
+    items.forEach(item=>{
+      const key=item.lotId+'::'+item.cap;
+      const tr=document.createElement('tr');
+      let mHTML='<span style="color:var(--t3)">—</span>';
+      if(item.auction>0){
+        const r=calcInv(item.auction,item.repair,fc);
+        const m=item.rrp>0?(item.rrp-r.s5*rate)/item.rrp:0;
+        mHTML=`<span class="${fclr(m)}" style="font-family:'JetBrains Mono',monospace">${fpct(m)}</span>`;
+      }
+      tr.innerHTML=`
+        <td class="mono" style="color:var(--t3)">${lotId}</td>
+        <td style="font-size:11px">${item.model}</td>
+        <td><span class="badge ${gbadge(item.grade)}">${item.grade}</span></td>
+        <td class="mono">${item.cap}</td>
+        <td class="mono">${item.qty}</td>
+        <td class="mono">${item.rrp?fuah(item.rrp):'—'}</td>
+        <td><input type="number" placeholder="$" step="1" value="${item.auction||''}"
+          oninput="qMap['${key}'].auction=+this.value;prevQM('${key}')"></td>
+        <td><input type="number" step="0.1" value="${(item.repair*100).toFixed(1)}"
+          oninput="qMap['${key}'].repair=+this.value/100;prevQM('${key}')"></td>
+        <td id="qm-${key.replace(/[^a-z0-9]/gi,'-')}">${mHTML}</td>`;
+      tbody.appendChild(tr);
+    });
+  });
+  updImportStatus();
+}
+
+function prevQM(key){
+  const item=qMap[key];if(!item||!item.auction)return;
+  const fc=getFC(),rate=gv('g-rate');
+  const r=calcInv(item.auction,item.repair,fc);
+  const m=item.rrp>0?(item.rrp-r.s5*rate)/item.rrp:0;
+  const el=document.getElementById('qm-'+key.replace(/[^a-z0-9]/gi,'-'));
+  if(el)el.innerHTML=`<span class="${fclr(m)}" style="font-family:'JetBrains Mono',monospace">${fpct(m)}</span>`;
+}
+
+function updImportStatus(){
+  const total=csvQueue.length,filled=csvQueue.filter(i=>i.auction>0).length;
+  document.getElementById('import-status').textContent=`${filled}/${total} цін вказано`;
+}
+
+function applyTargetMargin(){
+  const targetMargin=gv('target-margin')/100;
+  const fc=getFC(),rate=gv('g-rate');
+  csvQueue.forEach(item=>{
+    if(!item.rrp) return;
+    item.auction=auctionForMargin(item.rrp,item.repair,targetMargin,rate,fc);
+    const key=item.lotId+'::'+item.cap;
+    // update input in table
+    const el=document.getElementById('qm-'+key.replace(/[^a-z0-9]/gi,'-'));
+    if(el){
+      const tr=el.closest('tr');
+      if(tr){
+        const inp=tr.querySelectorAll('input')[0];
+        if(inp){inp.value=item.auction.toFixed(2);}
+      }
+      prevQM(key);
+    }
+  });
+  updImportStatus();
+  // also update lotPrices for lots already imported
+  const byLot={};
+  csvQueue.forEach(item=>{if(!byLot[item.lotId])byLot[item.lotId]=[];byLot[item.lotId].push(item);});
+  Object.entries(byLot).forEach(([lotId,items])=>{
+    const totalFP=items.reduce((s,i)=>s+i.auction*i.qty,0);
+    const totalQty=items.reduce((s,i)=>s+i.qty,0);
+    if(totalQty>0) lotPrices[lotId]={avgAuction:totalFP/totalQty};
+  });
+}
+
+function applyLastStatsPrices(){
+  if(!csvQueue.length){ return; }
+
+  const dates = [...new Set(STATS_DATA.map(d=>d.date))].sort();
+  const lastDate = dates[dates.length-1];
+  const prevDate = dates[dates.length-2];
+
+  // Normalize capacity: "256GB" → "256Gb", "1TB" → "1Tb" to match stats format
+  function normCap(cap){
+    return cap.replace(/GB$/,'Gb').replace(/TB$/,'Tb');
+  }
+
+  // Build lookup: "model+cap::grade" → price, tries lastDate then prevDate
+  function findPrice(model, cap, grade){
+    const normCap_ = normCap(cap);
+    // 1. Exact: family + normalized cap matches stats model name
+    const fullModel = model + ' ' + normCap_;
+    for(const date of [lastDate, prevDate]){
+      const row = STATS_DATA.find(d=>d.model===fullModel && d.grade===grade && d.date===date);
+      if(row) return row.price;
+    }
+    // 2. Exact family match (no capacity in stats)
+    for(const date of [lastDate, prevDate]){
+      const row = STATS_DATA.find(d=>d.model===model && d.grade===grade && d.date===date);
+      if(row) return row.price;
+    }
+    // 3. Fallback: any entry of this family+grade on last dates (sorted by closest cap)
+    const candidates = STATS_DATA.filter(d=>
+      d.model.startsWith(model+' ') && d.grade===grade && (d.date===lastDate||d.date===prevDate)
+    );
+    if(candidates.length){
+      // prefer entry whose capacity matches numerically
+      const capNum = parseInt(normCap_.replace(/\D/g,''));
+      candidates.sort((a,b)=>{
+        const aNum = parseInt(a.model.replace(/\D/g,'').slice(-4));
+        const bNum = parseInt(b.model.replace(/\D/g,'').slice(-4));
+        return Math.abs(aNum-capNum) - Math.abs(bNum-capNum);
+      });
+      return candidates[0].price;
+    }
+    return null;
+  }
+
+  let filled = 0, notFound = 0;
+  csvQueue.forEach(item=>{
+    const price = findPrice(item.model, item.cap, item.grade);
+
+    if(price){
+      item.auction = price;
+      filled++;
+      // update input in table
+      const tableKey = item.lotId+'::'+item.cap;
+      const el = document.getElementById('qm-'+tableKey.replace(/[^a-z0-9]/gi,'-'));
+      if(el){
+        const tr = el.closest('tr');
+        if(tr){
+          const inp = tr.querySelectorAll('input')[0];
+          if(inp){ inp.value = price.toFixed(2);  }
+        }
+        prevQM(tableKey);
+      }
+    } else {
+      notFound++;
+    }
+  });
+
+  const statusEl = document.getElementById('stats-fill-status');
+  if(statusEl){
+    statusEl.textContent = filled + ' заповнено' + (notFound ? ', ' + notFound + ' не знайдено' : '');
+    statusEl.style.color = notFound ? 'var(--amber)' : 'var(--green)';
+  }
+  updImportStatus();
+}
+
+function confirmPrices(){
+  csvQueue.forEach(item=>{
+    if(!item.auction) return;
+    const existing=lots.find(l=>l.lotId===item.lotId&&l.cap===item.cap);
+    if(existing){existing.auction=item.auction;existing.repair=item.repair;return;}
+    lots.push({id:item.lotId+'_'+item.cap,lotId:item.lotId,model:item.model,grade:item.grade,
+      cap:item.cap,qty:item.qty,auction:item.auction,repair:item.repair,rrp:item.rrp,endDate:item.endDate||'',sources:item.sources||{}});
+    if(!lotPrices[item.lotId]) lotPrices[item.lotId]={avgAuction:item.auction};
+  });
+  // update avgAuction per lot
+  const byLot={};
+  lots.forEach(l=>{if(!byLot[l.lotId])byLot[l.lotId]=[];byLot[l.lotId].push(l);});
+  Object.entries(byLot).forEach(([lotId,items])=>{
+    const totalFP=items.reduce((s,i)=>s+i.auction*i.qty,0);
+    const totalQty=items.reduce((s,i)=>s+i.qty,0);
+    if(totalQty>0) lotPrices[lotId]={avgAuction:totalFP/totalQty};
+  });
+  csvQueue.length=0;Object.keys(qMap).forEach(k=>delete qMap[k]);
+  renderQueue();populateModelFilter();renderLots();updateSummary();sw('lots');
+}
+
+function clearQueue(){csvQueue.length=0;Object.keys(qMap).forEach(k=>delete qMap[k]);renderQueue();}
+
+// ═══ LOTS TABLE ═══
+// ═══ SALE PRICE ═══
+function setSalePrice(lotId,val){
+  if(!lotPrices[lotId]) lotPrices[lotId]={};
+  lotPrices[lotId].salePrice=val;
+  updateLotCells(lotId);
+  updateSummary();
+}
+
+// ═══ UPDATE CELLS WITHOUT FULL RE-RENDER ═══
+// Updates only result cells of a lot row (not inputs) to avoid losing focus
+function updateLotCells(lotId){
+  const items=lots.filter(l=>l.lotId===lotId);
+  if(!items.length) return;
+  const fc=getFC(),rate=gv('g-rate');
+  const lp=lotPrices[lotId]||{};
+  const avgA=lp.avgAuction||0;
+  const totalQty=items.reduce((s,l)=>s+l.qty,0);
+  const dist=distributeByRRP(items,avgA);
+  let totFP=0,totInv=0,totRRP=0;
+  dist.forEach((d,i)=>{
+    const r=calcInv(d.auctionCalc,items[i].repair,fc);
+    totFP+=d.auctionCalc*items[i].qty;
+    totInv+=r.s5*rate*items[i].qty;
+    totRRP+=items[i].rrp*items[i].qty;
+  });
+  const lotM=totRRP>0?(totRRP-totInv)/totRRP:0;
+  const salePrice=lp.salePrice||0;
+  const salePnL=salePrice&&totInv?((salePrice*totalQty)-totInv):0;
+
+  // update cells by data-id attributes
+  // sync full price input
+  const totalQtyU=items.reduce((s,l)=>s+l.qty,0);
+  const fullInpU=document.getElementById('lip-'+lotId.replace(/[^a-z0-9]/gi,'-')+'-full');
+  if(fullInpU&&avgA) fullInpU.value=(avgA*totalQtyU).toFixed(2);
+  const fullEl=document.querySelector('[data-full="'+lotId+'"]');
+  const invEl=document.querySelector('[data-inv="'+lotId+'"]');
+  const rrpEl=document.querySelector('[data-rrp="'+lotId+'"]');
+  const marginEl=document.querySelector('[data-margin="'+lotId+'"]');
+  const profitEl=document.querySelector('[data-profit="'+lotId+'"]');
+  const salePnlEl=document.querySelector('[data-salepnl="'+lotId+'"]');
+
+  if(fullEl) fullEl.textContent=avgA?fusd(totFP):'—';
+  if(invEl) invEl.textContent=avgA?fuah(totInv/totalQty):'—';
+  if(rrpEl) rrpEl.textContent=totRRP?fuah(totRRP/totalQty):'—';
+  if(marginEl){
+    marginEl.innerHTML=avgA?'<span class="badge '+(lotM>0.05?'b-ok':lotM>0?'b-warn':'b-bad')+'">'+fpct(lotM)+'</span>':'—';
+  }
+  if(profitEl){
+    profitEl.textContent=totRRP&&avgA?fuah(totRRP-totInv):'—';
+    profitEl.className='mono '+(lotM>0?'pos':'neg');
+  }
+  // sale P&L only in detail view now
+
+  // update sku rows
+  if(items.length>1){
+    dist.forEach((d,i)=>{
+      const lot=items[i];
+      const r=calcInv(d.auctionCalc,lot.repair,fc);
+      const invUAH=r.s5*rate;
+      const m=lot.rrp>0?(lot.rrp-invUAH)/lot.rrp:0;
+      const skuAucEl=document.querySelector('[data-skuauc="'+lotId+'_'+lot.cap+'"]');
+      const skuFullEl=document.querySelector('[data-skufull="'+lotId+'_'+lot.cap+'"]');
+      const skuInvEl=document.querySelector('[data-skuinv="'+lotId+'_'+lot.cap+'"]');
+      const skuMEl=document.querySelector('[data-skum="'+lotId+'_'+lot.cap+'"]');
+      const skuPEl=document.querySelector('[data-skupnl="'+lotId+'_'+lot.cap+'"]');
+      if(skuAucEl) skuAucEl.textContent=avgA?fusd(d.auctionCalc):'—';
+      if(skuFullEl) skuFullEl.textContent=avgA?fusd(d.auctionCalc*lot.qty):'—';
+      if(skuInvEl) skuInvEl.textContent=avgA?fuah(invUAH):'—';
+      if(skuMEl){skuMEl.textContent=avgA?fpct(m):'—';skuMEl.className='mono '+fclr(m);}
+      if(skuPEl){skuPEl.textContent=lot.rrp&&avgA?fuah((lot.rrp-invUAH)*lot.qty):'—';skuPEl.className='mono '+(m>0?'pos':'neg');}
+    });
+  }
+}
+
+// ═══ SORT ═══
+function setSort(key){
+  curSort.key=key;
+  renderLots();
+}
+function flipSortDir(){
+  curSort.dir*=-1;
+  const btn=document.getElementById('sort-dir-btn');
+  if(btn) btn.textContent=curSort.dir===1?'↑':'↓';
+  renderLots();
+}
+
+// ═══ MODEL FILTER ═══
+function populateModelFilter(){
+  const sel=document.getElementById('model-filter');
+  if(!sel) return;
+  const models=[...new Set(lots.map(l=>l.model))].sort();
+  // keep first "all" option, rebuild rest
+  while(sel.options.length>1) sel.remove(1);
+  models.forEach(m=>{
+    const o=document.createElement('option');
+    o.value=m;o.textContent=m;
+    if(selModels.has(m)) o.selected=true;
+    sel.appendChild(o);
+  });
+  // resize to show content nicely
+  sel.size=Math.min(models.length+1,1);
+}
+
+function onModelFilterChange(){
+  const sel=document.getElementById('model-filter');
+  selModels=new Set();
+  Array.from(sel.selectedOptions).forEach(o=>{ if(o.value) selModels.add(o.value); });
+  renderLots();
+}
+
+function clearModelFilter(){
+  selModels=new Set();
+  const sel=document.getElementById('model-filter');
+  if(sel) Array.from(sel.options).forEach(o=>o.selected=false);
+  renderLots();
+}
+
+function setF(btn,f){curFilter=f;document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');renderLots();}
+
+function renderLots(){
+  const search=document.getElementById('lot-search').value.toLowerCase();
+  const tbody=document.getElementById('lot-tbody');
+  const empty=document.getElementById('lots-empty');
+  const fc=getFC(),rate=gv('g-rate');
+  tbody.innerHTML='';
+  const allIds=[...new Set(lots.map(l=>l.lotId))];
+
+  // build lot summaries for sort/filter
+  const lotSummaries=allIds.map(lotId=>{
+    const items=lots.filter(l=>l.lotId===lotId);
+    const lp=lotPrices[lotId]||{avgAuction:0};
+    const avgA=lp.avgAuction||0;
+    let margin=0;
+    if(avgA){
+      const dist=distributeByRRP(items,avgA);
+      let inv=0,rrp=0;
+      dist.forEach((d,i)=>{const r=calcInv(d.auctionCalc,items[i].repair,fc);inv+=r.s5*rate*items[i].qty;rrp+=items[i].rrp*items[i].qty;});
+      margin=rrp>0?(rrp-inv)/rrp:0;
+    }
+    const endDate=items[0].endDate||'';
+    return{lotId,items,margin,endDate,model:items[0].model,grade:items[0].grade};
+  });
+
+  const filtSummaries=lotSummaries.filter(({lotId,items,margin,model,grade})=>{
+    if(search&&!lotId.toLowerCase().includes(search)&&!model.toLowerCase().includes(search)) return false;
+    if(['A+','AA+','B+','C'].includes(curFilter)) return grade===curFilter;
+    if(curFilter==='pos') return margin>0;
+    if(curFilter==='neg') return margin<=0&&margin!==0;
+    if(selModels.size>0&&!selModels.has(model)) return false;
+    return true;
+  });
+
+  // also apply model filter when not using grade filter
+  const afterModelFilter=filtSummaries.filter(({model})=>selModels.size===0||selModels.has(model));
+
+  // sort
+  afterModelFilter.sort((a,b)=>{
+    let av,bv;
+    if(curSort.key==='model'){av=a.model;bv=b.model;}
+    else if(curSort.key==='endDate'){
+      av=a.endDate?new Date(a.endDate).getTime():0;
+      bv=b.endDate?new Date(b.endDate).getTime():0;
+    }
+    else if(curSort.key==='margin'){av=a.margin;bv=b.margin;}
+    else{av=a.lotId;bv=b.lotId;}
+    if(typeof av==='string') return curSort.dir*av.localeCompare(bv);
+    return curSort.dir*(av-bv);
+  });
+
+  if(!afterModelFilter.length){empty.style.display='block';return;}
+  empty.style.display='none';
+  const filtIds=afterModelFilter.map(s=>s.lotId);
+
+  filtIds.forEach(lotId=>{
+    const items=lots.filter(l=>l.lotId===lotId);
+    const lp=lotPrices[lotId]||{avgAuction:0};
+    const avgA=lp.avgAuction||0;
+    const totalQty=items.reduce((s,l)=>s+l.qty,0);
+    const dist=distributeByRRP(items,avgA);
+    let totFP=0,totInv=0,totRRP=0;
+    dist.forEach((d,i)=>{
+      const r=calcInv(d.auctionCalc,items[i].repair,fc);
+      totFP+=d.auctionCalc*items[i].qty;totInv+=r.s5*rate*items[i].qty;totRRP+=items[i].rrp*items[i].qty;
+    });
+    const lotM=totRRP>0?(totRRP-totInv)/totRRP:0;
+    const grade=items[0].grade;
+    const lipId='lip-'+lotId.replace(/[^a-z0-9]/gi,'-');
+
+    const htr=document.createElement('tr');htr.className='lot-hdr';
+    htr.innerHTML=`
+      <td style="text-align:center">
+        <input type="checkbox" ${watchlist.has(lotId)?'checked':''} 
+          onclick="toggleWatch('${lotId}',this.checked)"
+          style="width:14px;height:14px;cursor:pointer;accent-color:var(--acc)">
+      </td>
+      <td><span class="lot-id" onclick="openDetail('${lotId}')">${lotId}</span></td>
+      <td style="font-size:12px;font-weight:500">${items[0].model}</td>
+      <td><span class="badge ${gbadge(grade)}">${grade}</span></td>
+      <td class="mono" style="color:var(--t3)">${items.length>1?'mixed':items[0].cap}</td>
+      <td class="mono">${totalQty}</td>
+      <td>
+        <input class="price-inp" type="number" id="${lipId}"
+          value="${avgA?avgA.toFixed(2):''}" placeholder="$/ед." step="1"
+          oninput="setLotAvgFromUnit('${lotId}',+this.value,${totalQty})">
+      </td>
+      <td>
+        <input class="price-inp" type="number" id="${lipId}-full"
+          value="${avgA?(avgA*totalQty).toFixed(2):''}" placeholder="Full $" step="10"
+          style="width:100px"
+          oninput="setLotAvgFromFull('${lotId}',+this.value,${totalQty})">
+      </td>
+      <td class="mono" data-inv="${lotId}">${avgA?fuah(totInv/totalQty):'—'}</td>
+      <td class="mono" data-rrp="${lotId}">${totRRP?fuah(totRRP/totalQty):'—'}</td>
+      <td data-margin="${lotId}">${avgA?`<span class="badge ${lotM>0.05?'b-ok':lotM>0?'b-warn':'b-bad'}">${fpct(lotM)}</span>`:'—'}</td>
+      <td style="font-size:11px">${srcBadgesMerged(items)}</td>
+      <td class="mono" style="color:var(--t3);font-size:10px">${items[0].endDate||'—'}</td>
+      <td><button class="del-btn" onclick="delLot('${lotId}')">✕</button></td>`;
+        tbody.appendChild(htr);
+
+    if(items.length>1){
+      dist.forEach((d,i)=>{
+        const lot=items[i];
+        const r=calcInv(d.auctionCalc,lot.repair,fc);
+        const invUAH=r.s5*rate;
+        const m=lot.rrp>0?(lot.rrp-invUAH)/lot.rrp:0;
+        const tr=document.createElement('tr');tr.className='sku-row';
+        tr.innerHTML=`
+          <td></td><td></td>
+          <td class="mono" style="color:var(--t3);padding-left:20px">└ ${lot.cap}</td>
+          <td></td><td></td>
+          <td class="mono">${lot.qty}</td>
+          <td class="mono" style="color:var(--t2)" data-skuauc="${lotId}_${lot.cap}">${avgA?fusd(d.auctionCalc):'—'}</td>
+          <td class="mono" data-skufull="${lotId}_${lot.cap}">${avgA?fusd(d.auctionCalc*lot.qty):'—'}</td>
+          <td class="mono" data-skuinv="${lotId}_${lot.cap}">${avgA?fuah(invUAH):'—'}</td>
+          <td class="mono">${lot.rrp?fuah(lot.rrp):'—'}</td>
+          <td class="mono ${fclr(m)}" data-skum="${lotId}_${lot.cap}">${avgA?fpct(m):'—'}</td>
+          <td style="font-size:10px">${srcBadges(lot.sources||{})}</td>
+          <td></td>
+          <td><input class="repair-inp" type="number" step="0.1" value="${(lot.repair*100).toFixed(1)}"
+            title="Repair %" oninput="setRepair('${lot.lotId}','${lot.cap}',+this.value/100)"></td>`;
+        tbody.appendChild(tr);
+      });
+    } else {
+      // add repair to last cell
+      const lastTd=htr.querySelector('td:last-child');
+      lastTd.style.display='flex';lastTd.style.gap='4px';lastTd.style.alignItems='center';
+      const inp=document.createElement('input');
+      inp.className='repair-inp';inp.type='number';inp.step='0.1';inp.title='Repair %';
+      inp.value=(items[0].repair*100).toFixed(1);
+      inp.addEventListener('input',function(){setRepair(items[0].lotId,items[0].cap,+this.value/100);});
+      lastTd.appendChild(inp);
+    }
+  });
+}
+
+function setLotAvg(lotId,val){
+  if(!lotPrices[lotId]) lotPrices[lotId]={};
+  lotPrices[lotId].avgAuction=val;
+  updateLotCells(lotId);
+  updateSummary();
+  if(curDetail===lotId) renderDetail(lotId);
+}
+
+function setLotAvgFromUnit(lotId,val,qty){
+  if(!lotPrices[lotId]) lotPrices[lotId]={};
+  lotPrices[lotId].avgAuction=val;
+  // sync Full Price input without triggering its oninput
+  const fullInp=document.getElementById('lip-'+lotId.replace(/[^a-z0-9]/gi,'-')+'-full');
+  if(fullInp&&val) fullInp.value=(val*qty).toFixed(2);
+  updateLotCells(lotId);
+  updateSummary();
+  if(curDetail===lotId) renderDetail(lotId);
+}
+
+function setLotAvgFromFull(lotId,fullVal,qty){
+  if(!lotPrices[lotId]) lotPrices[lotId]={};
+  const unitVal = qty>0 ? fullVal/qty : 0;
+  lotPrices[lotId].avgAuction=unitVal;
+  // sync unit price input
+  const unitInp=document.getElementById('lip-'+lotId.replace(/[^a-z0-9]/gi,'-'));
+  if(unitInp&&unitVal) unitInp.value=unitVal.toFixed(2);
+  updateLotCells(lotId);
+  updateSummary();
+  if(curDetail===lotId) renderDetail(lotId);
+}
+
+function setRepair(lotId,cap,val){
+  const l=lots.find(l=>l.lotId===lotId&&l.cap===cap);
+  if(l) l.repair=val;
+  updateLotCells(lotId);
+  updateSummary();
+  if(curDetail===lotId) renderDetail(lotId);
+}
+
+function delLot(lotId){
+  lots=lots.filter(l=>l.lotId!==lotId);
+  delete lotPrices[lotId];
+  if(curDetail===lotId) curDetail=null;
+  renderLots();updateSummary();
+}
+
+// ═══ SUMMARY ═══
+function updateSummary(){
+  const bar=document.getElementById('summary-bar');
+  if(!lots.length){bar.innerHTML='';return;}
+  const fc=getFC(),rate=gv('g-rate');
+  let fp=0,inv=0,rrp=0;
+  const lotIds=[...new Set(lots.map(l=>l.lotId))];
+  lotIds.forEach(lotId=>{
+    const items=lots.filter(l=>l.lotId===lotId);
+    const avgA=(lotPrices[lotId]||{}).avgAuction||0;
+    if(!avgA) return;
+    const dist=distributeByRRP(items,avgA);
+    dist.forEach((d,i)=>{const r=calcInv(d.auctionCalc,items[i].repair,fc);fp+=d.auctionCalc*items[i].qty;inv+=r.s5*rate*items[i].qty;rrp+=items[i].rrp*items[i].qty;});
+  });
+  const avgM=rrp>0?(rrp-inv)/rrp:0;
+  bar.innerHTML=`
+    <div class="sb-item"><div class="sb-lbl">Лотів</div><div class="sb-val">${lotIds.length}</div></div>
+    <div class="sb-sep"></div>
+    <div class="sb-item"><div class="sb-lbl">SKU</div><div class="sb-val">${lots.length}</div></div>
+    <div class="sb-sep"></div>
+    <div class="sb-item"><div class="sb-lbl">Full Price $</div><div class="sb-val">${fusd(fp)}</div></div>
+    <div class="sb-sep"></div>
+    <div class="sb-item"><div class="sb-lbl">Target ₴</div><div class="sb-val">${fuah(inv)}</div></div>
+    <div class="sb-sep"></div>
+    <div class="sb-item"><div class="sb-lbl">RRP ₴</div><div class="sb-val">${rrp?fuah(rrp):'—'}</div></div>
+    <div class="sb-sep"></div>
+    <div class="sb-item"><div class="sb-lbl">Avg маржа</div><div class="sb-val ${fclr(avgM)}">${fpct(avgM)}</div></div>
+    <div class="sb-sep"></div>
+    <div class="sb-item"><div class="sb-lbl">Прибуток ₴</div><div class="sb-val ${avgM>0?'pos':'neg'}">${rrp?fuah(rrp-inv):'—'}</div></div>`;
+}
+
+// ═══ DETAIL ═══
+function openDetail(lotId){curDetail=lotId;sw('detail');renderDetail(lotId);}
+
+function renderDetail(lotId){
+  const items=lots.filter(l=>l.lotId===lotId);
+  if(!items.length) return;
+  const fc=getFC(),rate=gv('g-rate');
+  const avgA=(lotPrices[lotId]||{}).avgAuction||0;
+  const dist=distributeByRRP(items,avgA);
+  let totFP=0,totInv=0,totRRP=0;
+  const rows=dist.map((d,i)=>{
+    const lot=items[i];
+    const r=calcInv(d.auctionCalc,lot.repair,fc);
+    const invUAH=r.s5*rate;
+    const m=lot.rrp>0?(lot.rrp-invUAH)/lot.rrp:0;
+    totFP+=d.auctionCalc*lot.qty;totInv+=invUAH*lot.qty;totRRP+=lot.rrp*lot.qty;
+    return{lot,d,r,invUAH,m};
+  });
+  const avgM=totRRP>0?(totRRP-totInv)/totRRP:0;
+  const r0=rows[0].r,lot0=rows[0].lot,d0=rows[0].d;
+
+  document.getElementById('detail-content').innerHTML=`
+    <div class="detail-hdr">
+      <button class="back-btn" onclick="sw('lots')">← Лоти</button>
+      <div class="detail-id">${lotId}</div>
+      <div style="font-size:11px;color:var(--t2);font-family:'JetBrains Mono',monospace">${items[0].model} · <span class="badge ${gbadge(items[0].grade)}">${items[0].grade}</span></div>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:6px">
+        <span style="font-size:11px;color:var(--t2)">avg $/ед.</span>
+        <input class="price-inp" type="number" value="${avgA||''}" placeholder="auction" step="1"
+          style="width:100px" oninput="setLotAvg('${lotId}',+this.value)">
+        <span style="font-size:10px;color:var(--t3)">→ розподіл по RRP</span>
+      </div>
+    </div>
+    <div class="g4" style="margin-bottom:12px">
+      <div class="metric hi"><div class="m-lbl">Avg маржа</div><div class="m-val ${fclr(avgM)}">${avgA?fpct(avgM):'—'}</div></div>
+      <div class="metric"><div class="m-lbl">Full Price $</div><div class="m-val">${avgA?fusd(totFP):'—'}</div></div>
+      <div class="metric"><div class="m-lbl">Target ₴</div><div class="m-val">${avgA?fuah(totInv):'—'}</div></div>
+      <div class="metric"><div class="m-lbl">Прибуток ₴</div><div class="m-val ${avgM>0?'pos':'neg'}">${totRRP&&avgA?fuah(totRRP-totInv):'—'}</div></div>
+    </div>
+    <div class="card card-inner" style="margin-bottom:12px">
+      <div class="card-title">SKU breakdown · пропорційно RRP</div>
+      <div style="overflow-x:auto">
+      <table class="it">
+        <thead><tr><th>Пам'ять</th><th>Qty</th><th>Auction $ (розп.)</th><th>Repair %</th><th>Інв. ₴/ед.</th><th>RRP ₴</th><th>Маржа</th><th>Прибуток ₴</th></tr></thead>
+        <tbody>${rows.map(({lot,d,invUAH,m})=>`
+          <tr>
+            <td class="mono">${lot.cap}</td>
+            <td class="mono">${lot.qty}</td>
+            <td class="mono">${avgA?fusd(d.auctionCalc):'—'}</td>
+            <td><input class="repair-inp" type="number" step="0.1" value="${(lot.repair*100).toFixed(1)}"
+              style="width:60px;background:var(--s2);border:1px solid var(--b2);border-radius:4px;padding:4px 7px;color:var(--t1);font-family:'JetBrains Mono',monospace;font-size:11px"
+              oninput="setRepair('${lot.lotId}','${lot.cap}',+this.value/100)"></td>
+            <td class="mono">${avgA?fuah(invUAH):'—'}</td>
+            <td class="mono">${lot.rrp?fuah(lot.rrp):'—'}</td>
+            <td class="mono ${fclr(m)}" style="font-weight:500">${avgA?fpct(m):'—'}</td>
+            <td class="mono ${m>0?'pos':'neg'}">${lot.rrp&&avgA?fuah((lot.rrp-invUAH)*lot.qty):'—'}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+      </div>
+    </div>
+    <div class="card card-inner">
+      <button class="chain-toggle" onclick="document.getElementById('ch').classList.toggle('on');this.querySelector('span').textContent=document.getElementById('ch').classList.contains('on')?'▼ ':'▶ '">
+        <span>▶ </span>деталі цепочки (${lot0.cap}, auction = ${avgA?fusd(d0.auctionCalc):'—'})
+      </button>
+      <div id="ch" class="chain-body">
+        <div class="chain-row"><span class="ck">Lot Price PL (s2)</span><span class="cv">${avgA?fusd(r0.s2):'—'}</span></div>
+        <div class="chain-row"><span class="ck">Сервісний збір</span><span class="cv">${avgA?fusd(r0.svc):'—'}</span></div>
+        <div class="chain-row"><span class="ck">Inv. price to UA (s3)</span><span class="cv">${avgA?fusd(r0.s3):'—'}</span></div>
+        <div class="chain-row"><span class="ck">Repair ${(lot0.repair*100).toFixed(1)}% × s3</span><span class="cv">${avgA?fusd(r0.repairAmt):'—'}</span></div>
+        <div class="chain-row"><span class="ck">Inv. Price $ (s4)</span><span class="cv">${avgA?fusd(r0.s4):'—'}</span></div>
+        <div class="chain-row"><span class="ck">Inv. Price VAT $ (s5)</span><span class="cv">${avgA?fusd(r0.s5):'—'}</span></div>
+        <div class="chain-row"><span class="ck">Inv. Price VAT ₴ (×${rate})</span><span class="cv">${avgA?fuah(r0.s5*rate):'—'}</span></div>
+        <div class="chain-row"><span class="ck">RRP ₴</span><span class="cv">${lot0.rrp?fuah(lot0.rrp):'—'}</span></div>
+      </div>
+    </div>`;
+}
+
+// ═══ EXPORT ═══
+function exportCSV(){
+  // Group by model+grade, weighted average auction price per unit
+  const groups={};
+  const lotIds=[...new Set(lots.map(l=>l.lotId))];
+  lotIds.forEach(lotId=>{
+    const items=lots.filter(l=>l.lotId===lotId);
+    const lp=lotPrices[lotId]||{};
+    const avgA=lp.avgAuction||0;
+    if(!avgA) return;
+    const dist=distributeByRRP(items,avgA);
+    dist.forEach((d,i)=>{
+      const lot=items[i];
+      const key=lot.model+'||'+lot.grade;
+      if(!groups[key]) groups[key]={model:lot.model,grade:lot.grade,totalQty:0,totalWgt:0};
+      // weighted by qty
+      groups[key].totalQty+=lot.qty;
+      groups[key].totalWgt+=d.auctionCalc*lot.qty;
+    });
+  });
+
+  const rows=[['Модель','Грейд','Кількість (шт)','Середня ціна $/ед.']];
+  Object.values(groups)
+    .sort((a,b)=>a.model.localeCompare(b.model)||a.grade.localeCompare(b.grade))
+    .forEach(g=>{
+      const avgPrice=g.totalQty>0?g.totalWgt/g.totalQty:0;
+      rows.push([g.model,g.grade,g.totalQty,avgPrice.toFixed(2)]);
+    });
+
+  const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='ATT_avg_price_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+}
+
+
+// ═══ GOOGLE SHEETS SYNC ═══
+const GS_BASE = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTsDLcI-5Ha0RAeZiRw89-XtHzao2rcF4RAlzX5mplkyzNnjG12S6qIRG0IpB4BGLbgsXf7WofTLBxb/pub';
+const GS_GID_LOT    = '0';
+const GS_GID_REPAIR = '566795774';
+const GS_GID_RRP    = '1738274427';
+
+async function fetchGS(gid){
+  const url = GS_BASE + '?gid=' + gid + '&single=true&output=csv';
+  const enc = encodeURIComponent(url);
+  const tries = [
+    {name:'direct',     fn: ()=>fetch(url, {cache:'no-store', mode:'cors'})},
+    {name:'allorigins', fn: ()=>fetch('https://api.allorigins.win/raw?url='+enc, {cache:'no-store'})},
+    {name:'corsproxy',  fn: ()=>fetch('https://corsproxy.io/?'+enc, {cache:'no-store'})},
+    {name:'jsonp-cdn',  fn: ()=>fetch('https://cdn.jsdelivr.net/gh/nicowillis/cors-proxy@main/proxy.php?url='+enc, {cache:'no-store'})},
+  ];
+  fetchGS._lastErrors = [];
+  for(const {name, fn} of tries){
+    try{
+      const res = await Promise.race([fn(), new Promise((_,r)=>setTimeout(()=>r(new Error('timeout')),6000))]);
+      if(!res.ok){ fetchGS._lastErrors.push(name+':'+res.status); continue; }
+      const text = await res.text();
+      if(text.trim().startsWith('<')){ fetchGS._lastErrors.push(name+':html'); continue; }
+      if(text.length < 10){ fetchGS._lastErrors.push(name+':empty'); continue; }
+      fetchGS._lastErrors.push(name+':OK');
+      return text;
+    } catch(e){ fetchGS._lastErrors.push(name+':'+e.message.slice(0,15)); continue; }
+  }
+  return null;
+}
+
+async function syncRepairFromSheet(){
+  const text = await fetchGS(GS_GID_REPAIR);
+  if(!text) return false;
+  const lines = text.split('\n').filter(l=>l.trim());
+  // header: Model, AA+, A+, B+, C
+  const parsed = lines.slice(1).map(l=>{
+    const c = l.split(',').map(s=>s.trim().replace(/"/g,''));
+    if(!c[0]||!c[0].startsWith('iPhone')) return null;
+    return {m:c[0], r:[
+      parseFloat(c[2]||0)/100,  // A+
+      parseFloat(c[1]||0)/100,  // AA+
+      parseFloat(c[3]||0)/100,  // B+
+      parseFloat(c[4]||0)/100,  // C
+    ]};
+  }).filter(Boolean);
+  if(!parsed.length) return false;
+  REPAIR.length = 0;
+  parsed.forEach(r=>REPAIR.push(r));
+  renderRepairTable();
+  recalcAll();
+  return true;
+}
+
+async function syncRRPFromSheet(){
+  const text = await fetchGS(GS_GID_RRP);
+  if(!text) return false;
+  const lines = text.split('\n').filter(l=>l.trim());
+  let updated = 0;
+  lines.slice(1).forEach(l=>{
+    const c = l.split(',').map(s=>s.trim().replace(/"/g,''));
+    const model = c[0], price = parseFloat(c[1]);
+    if(model && !isNaN(price) && price > 0){
+      RRP[model] = price;
+      // update lots that use this model
+      lots.forEach(lot=>{
+        const vars = [lot.cap, lot.cap.replace('GB','Gb').replace('TB','Tb')];
+        if(vars.some(cv=>lot.model+' '+cv===model)) lot.rrp=price;
+      });
+      updated++;
+    }
+  });
+  if(!updated) return false;
+  renderRepairTable();
+  recalcAll();
+  return true;
+}
+
+async function autoSyncFC(){
+  // Auto-sync on first open only
+  if(autoSyncFC._done) return;
+  autoSyncFC._done = true;
+  const statusEl = document.getElementById('sync-all-status');
+  if(statusEl){ statusEl.textContent = 'Оновлення…'; statusEl.style.color = 'var(--t2)'; }
+  const [r1, r2] = await Promise.all([syncRepairFromSheet(), syncRRPFromSheet()]);
+  if(statusEl){
+    if(r1||r2){
+      const parts = [r1?'Repair ✓':'', r2?'RRP ✓':''].filter(Boolean);
+      statusEl.textContent = parts.join(' · ') + ' · ' + new Date().toLocaleTimeString('uk-UA');
+      statusEl.style.color = 'var(--green)';
+    } else {
+      statusEl.textContent = 'офлайн — дані з файлу';
+      statusEl.style.color = 'var(--t3)';
+    }
+  }
+}
+
+async function syncAllFromSheet(){
+  autoSyncFC._done = false; // allow re-run
+  const btn = document.getElementById('sync-all-btn');
+  const status = document.getElementById('sync-all-status');
+  if(btn) btn.disabled = true;
+  if(status){ status.textContent='Оновлення…'; status.style.color='var(--t2)'; }
+  const [r1, r2] = await Promise.all([syncRepairFromSheet(), syncRRPFromSheet()]);
+  autoSyncFC._done = true;
+  if(btn) btn.disabled = false;
+  if(status){
+    if(r1&&r2) { status.textContent='✓ Repair % + RRP · '+new Date().toLocaleTimeString('uk-UA'); status.style.color='var(--green)'; }
+    else if(r1||r2) { status.textContent='⚠ Repair='+(r1?'✓':'✗')+' RRP='+(r2?'✓':'✗'); status.style.color='var(--amber)'; }
+    else { const errs=(fetchGS._lastErrors||[]).join(', '); status.textContent='✗ ('+errs+')'; status.style.color='var(--red)'; }
+  }
+}
+
+// ═══ LISTINGS FROM GOOGLE SHEETS ═══
+async function loadListingsFromSheet(){
+  const statusEl = document.getElementById('listings-load-status');
+  if(statusEl){ statusEl.textContent = 'Завантаження…'; statusEl.style.color = 'var(--t2)'; }
+
+  const text = await fetchGS(GS_GID_LOT);
+  if(!text){
+    if(statusEl){ statusEl.textContent = '✗ Не вдалось завантажити'; statusEl.style.color = 'var(--red)'; }
+    return;
+  }
+
+  const items = parseFile(text, 'google-sheets-listings.csv');
+  if(!items.length){
+    if(statusEl){ statusEl.textContent = '✗ Не вдалось розпізнати дані'; statusEl.style.color = 'var(--red)'; }
+    return;
+  }
+
+  // Clear old queue first, then add new items
+  csvQueue.length = 0;
+  Object.keys(qMap).forEach(k=>delete qMap[k]);
+  items.forEach(item=>{
+    csvQueue.push(item);
+    qMap[item.lotId+'::'+item.cap] = item;
+    if(!item.repair) item.repair = getDefRepair(item.model, item.grade);
+    if(!item.auction) item.auction = 0;
+  });
+
+  if(statusEl){
+    const lotCount = [...new Set(items.map(i=>i.lotId))].length;
+    statusEl.textContent = '✓ ' + lotCount + ' лотів · ' + items.length + ' SKU · ' + new Date().toLocaleTimeString('uk-UA');
+    statusEl.style.color = 'var(--green)';
+  }
+  renderQueue();
+}
+
+// ═══ WATCHLIST ═══
+function toggleWatch(lotId, checked){
+  if(checked) watchlist.add(lotId);
+  else watchlist.delete(lotId);
+  renderWatchlist();
+}
+
+function toggleAllWatch(chk){
+  const fc=getFC(), rate=gv('g-rate');
+  const search=document.getElementById('lot-search').value.toLowerCase();
+  const allIds=[...new Set(lots.map(l=>l.lotId))].filter(id=>{
+    if(search&&!id.toLowerCase().includes(search)&&!lots.find(l=>l.lotId===id)?.model.toLowerCase().includes(search)) return false;
+    return true;
+  });
+  allIds.forEach(id=>{ if(chk.checked) watchlist.add(id); else watchlist.delete(id); });
+  renderLots();
+  renderWatchlist();
+}
+
+function clearWatchlist(){
+  watchlist.clear();
+  renderLots();
+  renderWatchlist();
+}
+
+function renderWatchlist(){
+  const tbody=document.getElementById('watchlist-tbody');
+  const empty=document.getElementById('watchlist-empty');
+  const summary=document.getElementById('watchlist-summary');
+  if(!tbody) return;
+  tbody.innerHTML='';
+
+  if(!watchlist.size){
+    empty.style.display='';
+    summary.innerHTML='';
+    return;
+  }
+  empty.style.display='none';
+
+  const fc=getFC(), rate=gv('g-rate');
+  let totFP=0, totInv=0, totRRP=0;
+
+  watchlist.forEach(lotId=>{
+    const items=lots.filter(l=>l.lotId===lotId);
+    if(!items.length) return;
+    const lp=lotPrices[lotId]||{};
+    const avgA=lp.avgAuction||0;
+    const totalQty=items.reduce((s,l)=>s+l.qty,0);
+    const dist=distributeByRRP(items,avgA);
+    let lotInv=0,lotRRP=0;
+    dist.forEach((d,i)=>{
+      const r=calcInv(d.auctionCalc,items[i].repair,fc);
+      if(avgA){ lotInv+=r.s5*rate*items[i].qty; }
+      lotRRP+=items[i].rrp*items[i].qty;
+    });
+    const lotFP=avgA*totalQty;
+    const lotM=lotRRP>0&&avgA?(lotRRP-lotInv)/lotRRP:0;
+    const grade=items[0].grade;
+    const wlUnitId='wl-unit-'+lotId.replace(/[^a-z0-9]/gi,'-');
+    const wlFullId='wl-full-'+lotId.replace(/[^a-z0-9]/gi,'-');
+
+    const tr=document.createElement('tr');
+    tr.className='lot-hdr';
+    tr.innerHTML=`
+      <td><span class="lot-id" onclick="openDetail('${lotId}');sw('detail')">${lotId}</span></td>
+      <td style="font-size:12px;font-weight:500">${items[0].model}</td>
+      <td><span class="badge ${gbadge(grade)}">${grade}</span></td>
+      <td class="mono" style="color:var(--t3)">${items.length>1?'mixed':items[0].cap}</td>
+      <td class="mono">${totalQty}</td>
+      <td>
+        <input class="price-inp" type="number" id="${wlUnitId}"
+          value="${avgA?avgA.toFixed(2):''}" placeholder="$/ед." step="1"
+          oninput="setLotAvgFromUnit('${lotId}',+this.value,${totalQty});syncWlFull('${lotId}',+this.value,${totalQty})">
+      </td>
+      <td>
+        <input class="price-inp" type="number" id="${wlFullId}"
+          value="${avgA?(avgA*totalQty).toFixed(2):''}" placeholder="Full $" step="10"
+          style="width:100px"
+          oninput="setLotAvgFromFull('${lotId}',+this.value,${totalQty});syncWlUnit('${lotId}',+this.value,${totalQty})">
+      </td>
+      <td class="mono" id="wl-inv-${lotId.replace(/[^a-z0-9]/gi,'-')}">${avgA?fuah(lotInv/totalQty):'—'}</td>
+      <td class="mono">${lotRRP?fuah(lotRRP/totalQty):'—'}</td>
+      <td id="wl-margin-${lotId.replace(/[^a-z0-9]/gi,'-')}">${avgA?'<span class="badge '+(lotM>0.05?'b-ok':lotM>0?'b-warn':'b-bad')+'">'+fpct(lotM)+'</span>':'—'}</td>
+      <td class="mono" style="color:var(--t3);font-size:10px">${items[0].endDate||'—'}</td>
+      <td><button class="del-btn" onclick="toggleWatch('${lotId}',false);renderLots()" title="Прибрати зі списку">✕</button></td>`;
+    tbody.appendChild(tr);
+
+    if(avgA){ totFP+=lotFP; totInv+=lotInv; totRRP+=lotRRP; }
+  });
+
+  const avgM=totRRP>0?(totRRP-totInv)/totRRP:0;
+  summary.innerHTML=`
+    <div class="sb-item"><div class="sb-lbl">Лотів</div><div class="sb-val">${watchlist.size}</div></div>
+    <div class="sb-sep"></div>
+    <div class="sb-item"><div class="sb-lbl">Full Price $</div><div class="sb-val">${fusd(totFP)}</div></div>
+    <div class="sb-sep"></div>
+    <div class="sb-item"><div class="sb-lbl">Target ₴</div><div class="sb-val">${fuah(totInv)}</div></div>
+    <div class="sb-sep"></div>
+    <div class="sb-item"><div class="sb-lbl">RRP ₴</div><div class="sb-val">${totRRP?fuah(totRRP):'—'}</div></div>
+    <div class="sb-sep"></div>
+    <div class="sb-item"><div class="sb-lbl">Avg маржа</div><div class="sb-val ${fclr(avgM)}">${fpct(avgM)}</div></div>
+    <div class="sb-sep"></div>
+    <div class="sb-item"><div class="sb-lbl">Прибуток ₴</div><div class="sb-val ${avgM>0?'pos':'neg'}">${totRRP?fuah(totRRP-totInv):'—'}</div></div>`;
+}
+
+// Sync watchlist inputs without re-render (keep focus)
+function syncWlFull(lotId, unitVal, qty){
+  const el=document.getElementById('wl-full-'+lotId.replace(/[^a-z0-9]/gi,'-'));
+  if(el&&unitVal) el.value=(unitVal*qty).toFixed(2);
+  updateWlCells(lotId);
+}
+function syncWlUnit(lotId, fullVal, qty){
+  const el=document.getElementById('wl-unit-'+lotId.replace(/[^a-z0-9]/gi,'-'));
+  const unitVal=qty>0?fullVal/qty:0;
+  if(el&&unitVal) el.value=unitVal.toFixed(2);
+  updateWlCells(lotId);
+}
+function updateWlCells(lotId){
+  const items=lots.filter(l=>l.lotId===lotId);
+  if(!items.length) return;
+  const fc=getFC(), rate=gv('g-rate');
+  const avgA=(lotPrices[lotId]||{}).avgAuction||0;
+  if(!avgA) return;
+  const totalQty=items.reduce((s,l)=>s+l.qty,0);
+  const dist=distributeByRRP(items,avgA);
+  let lotInv=0,lotRRP=0;
+  dist.forEach((d,i)=>{
+    const r=calcInv(d.auctionCalc,items[i].repair,fc);
+    lotInv+=r.s5*rate*items[i].qty;
+    lotRRP+=items[i].rrp*items[i].qty;
+  });
+  const lotM=lotRRP>0?(lotRRP-lotInv)/lotRRP:0;
+  const invEl=document.getElementById('wl-inv-'+lotId.replace(/[^a-z0-9]/gi,'-'));
+  const marginEl=document.getElementById('wl-margin-'+lotId.replace(/[^a-z0-9]/gi,'-'));
+  if(invEl) invEl.textContent=fuah(lotInv/totalQty);
+  if(marginEl) marginEl.innerHTML='<span class="badge '+(lotM>0.05?'b-ok':lotM>0?'b-warn':'b-bad')+'">'+fpct(lotM)+'</span>';
+  // also update summary
+  const allInvRRP = updateWlSummary();
+}
+function updateWlSummary(){
+  const fc=getFC(), rate=gv('g-rate');
+  let totFP=0,totInv=0,totRRP=0;
+  watchlist.forEach(lotId=>{
+    const items=lots.filter(l=>l.lotId===lotId);
+    if(!items.length) return;
+    const avgA=(lotPrices[lotId]||{}).avgAuction||0;
+    if(!avgA) return;
+    const totalQty=items.reduce((s,l)=>s+l.qty,0);
+    const dist=distributeByRRP(items,avgA);
+    dist.forEach((d,i)=>{
+      const r=calcInv(d.auctionCalc,items[i].repair,fc);
+      totFP+=d.auctionCalc*items[i].qty;
+      totInv+=r.s5*rate*items[i].qty;
+      totRRP+=items[i].rrp*items[i].qty;
+    });
+  });
+  const avgM=totRRP>0?(totRRP-totInv)/totRRP:0;
+  const summary=document.getElementById('watchlist-summary');
+  if(summary) summary.innerHTML=`
+    <div class="sb-item"><div class="sb-lbl">Лотів</div><div class="sb-val">${watchlist.size}</div></div>
+    <div class="sb-sep"></div>
+    <div class="sb-item"><div class="sb-lbl">Full Price $</div><div class="sb-val">${fusd(totFP)}</div></div>
+    <div class="sb-sep"></div>
+    <div class="sb-item"><div class="sb-lbl">Target ₴</div><div class="sb-val">${fuah(totInv)}</div></div>
+    <div class="sb-sep"></div>
+    <div class="sb-item"><div class="sb-lbl">RRP ₴</div><div class="sb-val">${totRRP?fuah(totRRP):'—'}</div></div>
+    <div class="sb-sep"></div>
+    <div class="sb-item"><div class="sb-lbl">Avg маржа</div><div class="sb-val ${fclr(avgM)}">${fpct(avgM)}</div></div>
+    <div class="sb-sep"></div>
+    <div class="sb-item"><div class="sb-lbl">Прибуток ₴</div><div class="sb-val ${avgM>0?'pos':'neg'}">${totRRP?fuah(totRRP-totInv):'—'}</div></div>`;
+}
+
+
+function exportWatchlistCSV(){
+  const fc=getFC(),rate=gv('g-rate');
+  const rows=[['Lot ID','Модель','Грейд','Пам\'ять','Qty','Auction $/ед.','Full Price $','Інв. ₴/ед.','RRP ₴/ед.','Маржа %']];
+  watchlist.forEach(lotId=>{
+    const items=lots.filter(l=>l.lotId===lotId);
+    const lp=lotPrices[lotId]||{};
+    const avgA=lp.avgAuction||0;
+    const totalQty=items.reduce((s,l)=>s+l.qty,0);
+    const dist=distributeByRRP(items,avgA);
+    let totInv=0,totRRP=0;
+    dist.forEach((d,i)=>{
+      const r=calcInv(d.auctionCalc,items[i].repair,fc);
+      if(avgA) totInv+=r.s5*rate*items[i].qty;
+      totRRP+=items[i].rrp*items[i].qty;
+    });
+    const lotM=totRRP>0&&avgA?(totRRP-totInv)/totRRP:0;
+    rows.push([lotId,items[0].model,items[0].grade,items.length>1?'mixed':items[0].cap,
+      totalQty,avgA?avgA.toFixed(2):'',avgA?(avgA*totalQty).toFixed(2):'',
+      avgA?Math.round(totInv/totalQty):'',totRRP?Math.round(totRRP/totalQty):'',
+      avgA?(lotM*100).toFixed(2):'']);
+  });
+  const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='watchlist_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+}
+
+// ═══ RECALC ═══
+function recalcAll(){
+  populateModelFilter();
+  renderLots();updateSummary();
+  renderWatchlist();
+  if(curDetail) renderDetail(curDetail);
+  if(csvQueue.length) renderPriceTable();
+}
+
+// ═══ THEME ═══
+function toggleTheme(){
+  const html=document.documentElement;
+  const isDark=html.getAttribute('data-theme')==='dark';
+  html.setAttribute('data-theme',isDark?'light':'dark');
+  document.getElementById('theme-btn').textContent=isDark?'🌙':'☀️';
+}
+
+// ═══ TAB ═══
+const TAB_LABELS={lots:'Лоти',import:'Імпорт',detail:'Деталі',fc:'Foodchain',stats:'Статистика',watchlist:'⭐ Мій список'};
+function sw(name){
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.getElementById('pane-'+name).classList.add('on');
+  const map={lots:0,import:1,detail:2,fc:3,stats:4,watchlist:5};
+  document.querySelectorAll('.tab')[map[name]]?.classList.add('on');
+  // Mobile: close menu, update active label and bottom nav
+  const tabs=document.getElementById('main-tabs');
+  if(tabs) tabs.classList.remove('mob-open');
+  const lbl=document.getElementById('mob-active-tab');
+  if(lbl) lbl.textContent=TAB_LABELS[name]||name;
+  document.querySelectorAll('.mob-nav-btn').forEach(b=>{
+    b.classList.toggle('on', b.dataset.pane===name);
+  });
+  window.scrollTo(0,0);
+  if(name==='stats')      initStats();
+  if(name==='watchlist')  renderWatchlist();
+  if(name==='fc')         { renderRepairTable(); renderRRPTable(); autoSyncFC(); }
+}
+function toggleMobMenu(){
+  const tabs=document.getElementById('main-tabs');
+  if(tabs) tabs.classList.toggle('mob-open');
+}
+
+// ═══ INIT ═══
+renderRepairTable();
+renderRRPTable();
+updateSummary();
+// Pre-load statistics in background so applyLastStatsPrices works immediately
+loadStatsFromSheet();
+
+// ═══════════════════════════════════════════════
+// STATISTICS MODULE
+// ═══════════════════════════════════════════════
+
+let STATS_DATA = []; // loaded from Google Sheets
+
+const GSHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSlZ2tNCZxveIYSqGL5c3seOzQm7Y3rWigaOJLiDkwzCaPIsM4x8KaXv17b3BFeqXeOzj3-L1PZwROH/pub?output=csv';
+
+async function loadStatsFromSheet(){
+  const statusEl = document.getElementById('stats-load-status');
+  if(statusEl){ statusEl.textContent = 'Завантаження…'; statusEl.style.color = 'var(--t2)'; }
+
+  const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSlZ2tNCZxveIYSqGL5c3seOzQm7Y3rWigaOJLiDkwzCaPIsM4x8KaXv17b3BFeqXeOzj3-L1PZwROH/pub?output=csv';
+  const enc = encodeURIComponent(CSV_URL);
+
+  const attempts = [
+    // 1. Direct
+    {name:'direct',   fn: ()=>fetch(CSV_URL, {cache:'no-store'})},
+    // 2. allorigins
+    {name:'allorigins', fn: ()=>fetch('https://api.allorigins.win/raw?url='+enc, {cache:'no-store'})},
+    // 3. corsproxy.io
+    {name:'corsproxy',  fn: ()=>fetch('https://corsproxy.io/?'+enc, {cache:'no-store'})},
+    // 4. htmldriven
+    {name:'htmldriven', fn: ()=>fetch('https://cors-anywhere.herokuapp.com/'+CSV_URL, {cache:'no-store'})},
+    // 5. 8x8
+    {name:'8x8',  fn: ()=>fetch('https://proxy.cors.sh/'+CSV_URL, {cache:'no-store',headers:{'x-cors-api-key':'temp_...'}})},
+  ];
+
+  const errors = [];
+  for(const {name, fn} of attempts){
+    try{
+      const res = await Promise.race([fn(), new Promise((_,r)=>setTimeout(()=>r(new Error('timeout')),5000))]);
+      if(!res.ok){ errors.push(name+':HTTP'+res.status); continue; }
+      const text = await res.text();
+      if(text.trim().startsWith('<')){ errors.push(name+':HTML'); continue; }
+      const parsed = parseStatsCSV(text);
+      if(!parsed.length){ errors.push(name+':empty'); continue; }
+      STATS_DATA = parsed;
+      if(statusEl){
+        statusEl.textContent = '✓ ' + parsed.length + ' записів · ' + new Date().toLocaleTimeString('uk-UA');
+        statusEl.style.color = 'var(--green)';
+      }
+      // update applyLastStatsPrices button hint
+      const hintEl = document.getElementById('stats-fill-status');
+      if(hintEl && !hintEl.textContent) hintEl.textContent = 'статистика завантажена';
+      initTrendSelects(); initCompareSelects(); initGradeSelects(); initHeatmapSelects();
+      if(document.getElementById('pane-stats')?.classList.contains('on')) renderStatView(curStatView);
+      return;
+    } catch(e){ errors.push(name+':'+e.message.slice(0,20)); }
+  }
+
+  // All failed — show detailed status + manual upload hint
+  if(statusEl){
+    statusEl.innerHTML = `✗ Не вдалось (${errors.join(', ')}) &nbsp;
+      <label style="cursor:pointer;display:inline-flex;align-items:center;gap:4px;background:var(--s2);border:1px solid var(--b2);border-radius:4px;padding:2px 8px;font-size:10px;color:var(--t2)">
+        📂 Завантажити файл
+        <input type="file" accept=".csv" style="position:absolute;opacity:0;width:0;height:0" onchange="loadStatsFile(this)">
+      </label>`;
+    statusEl.style.color = 'var(--red)';
+  }
+}
+
+function loadStatsFile(inp){
+  const file = inp.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    const parsed = parseStatsCSV(ev.target.result);
+    const statusEl = document.getElementById('stats-load-status');
+    if(!parsed.length){ if(statusEl){statusEl.textContent='✗ Файл не розпізнано';statusEl.style.color='var(--red)';} return; }
+    STATS_DATA = parsed;
+    if(statusEl){
+      statusEl.textContent = '✓ ' + parsed.length + ' записів з файлу · ' + new Date().toLocaleTimeString('uk-UA');
+      statusEl.style.color = 'var(--green)';
+    }
+    initTrendSelects(); initCompareSelects(); initGradeSelects(); initHeatmapSelects();
+    if(document.getElementById('pane-stats')?.classList.contains('on')) renderStatView(curStatView);
+  };
+  reader.readAsText(file);
+}
+
+// Manual file upload handler
+document.addEventListener('DOMContentLoaded', function(){
+  // Foodchain file upload (Excel or CSV with Repair% and RRP sheets)
+  const fcInp = document.getElementById('fc-file-upload');
+  if(fcInp) fcInp.addEventListener('change', async function(e){
+    const file = e.target.files[0]; if(!file) return;
+    const statusEl = document.getElementById('fc-file-status');
+    const syncStatusEl = document.getElementById('sync-all-status');
+    if(statusEl) statusEl.textContent = 'Читання…';
+
+    if(file.name.endsWith('.xlsx') || file.name.endsWith('.xls')){
+      const reader = new FileReader();
+      reader.onload = function(ev){
+        try{
+          const wb = XLSX.read(ev.target.result, {type:'array'});
+          let repairUpdated=0, rrpUpdated=0;
+
+          // Parse Repair % sheet
+          const repairSheet = wb.Sheets['Repair %'] || wb.Sheets[wb.SheetNames.find(n=>n.toLowerCase().includes('repair'))];
+          if(repairSheet){
+            const rows = XLSX.utils.sheet_to_json(repairSheet, {header:1});
+            // header: Model, AA+, A+, B+, C
+            const parsed = rows.slice(1).map(r=>{
+              if(!r[0]||!String(r[0]).startsWith('iPhone')) return null;
+              return {m:String(r[0]), r:[
+                parseFloat(r[2]||0)/100,  // A+  (col index 2)
+                parseFloat(r[1]||0)/100,  // AA+ (col index 1)
+                parseFloat(r[3]||0)/100,  // B+  (col index 3)
+                parseFloat(r[4]||0)/100,  // C   (col index 4)
+              ]};
+            }).filter(Boolean);
+            if(parsed.length){ REPAIR.length=0; parsed.forEach(r=>REPAIR.push(r)); repairUpdated=parsed.length; }
+          }
+
+          // Parse RRP sheet
+          const rrpSheet = wb.Sheets['RRP ₴  ед.'] || wb.Sheets[wb.SheetNames.find(n=>n.toLowerCase().includes('rrp'))];
+          if(rrpSheet){
+            const rows = XLSX.utils.sheet_to_json(rrpSheet, {header:1});
+            rows.slice(1).forEach(r=>{
+              const model=String(r[0]||'').trim(), price=parseFloat(r[1]);
+              if(model && !isNaN(price) && price>0){ RRP[model]=price; rrpUpdated++; }
+            });
+          }
+
+          renderRepairTable();
+          renderRRPTable();
+          recalcAll();
+
+          const msg = [repairUpdated?'Repair: '+repairUpdated+' моделей':'', rrpUpdated?'RRP: '+rrpUpdated+' позицій':''].filter(Boolean).join(' · ');
+          if(statusEl){ statusEl.textContent = msg ? '✓ '+msg : '⚠ Листи не знайдено'; statusEl.style.color = msg?'var(--green)':'var(--amber)'; }
+          if(syncStatusEl){ syncStatusEl.textContent = msg ? '✓ '+msg+' · '+new Date().toLocaleTimeString('uk-UA') : ''; syncStatusEl.style.color='var(--green)'; }
+        } catch(e){
+          if(statusEl){ statusEl.textContent='✗ Помилка: '+e.message; statusEl.style.color='var(--red)'; }
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    } else {
+      // CSV file — try to detect if it's Repair or RRP format
+      const reader = new FileReader();
+      reader.onload = function(ev){
+        const text = ev.target.result;
+        const lines = text.split('\n').filter(l=>l.trim());
+        if(!lines.length) return;
+        const header = lines[0].toLowerCase();
+        let updated = 0;
+
+        if(header.includes('aa+') || header.includes('a+') || header.includes('repair')){
+          // Repair % format: Model, AA+, A+, B+, C
+          const parsed = lines.slice(1).map(l=>{
+            const c = l.split(',').map(s=>s.trim().replace(/"/g,''));
+            if(!c[0]||!c[0].startsWith('iPhone')) return null;
+            return {m:c[0], r:[
+              parseFloat(c[2]||0)/100,
+              parseFloat(c[1]||0)/100,
+              parseFloat(c[3]||0)/100,
+              parseFloat(c[4]||0)/100,
+            ]};
+          }).filter(Boolean);
+          if(parsed.length){ REPAIR.length=0; parsed.forEach(r=>REPAIR.push(r)); renderRepairTable(); recalcAll(); updated=parsed.length; }
+          if(statusEl){ statusEl.textContent='✓ Repair: '+updated+' моделей'; statusEl.style.color='var(--green)'; }
+        } else if(header.includes('rrp') || header.includes('модел') || header.includes('model')){
+          // RRP format: Model+Cap, Price
+          lines.slice(1).forEach(l=>{
+            const c = l.split(',').map(s=>s.trim().replace(/"/g,''));
+            const model=c[0], price=parseFloat(c[1]);
+            if(model && !isNaN(price) && price>0){ RRP[model]=price; updated++; }
+          });
+          if(updated){ renderRRPTable(); recalcAll(); }
+          if(statusEl){ statusEl.textContent='✓ RRP: '+updated+' позицій'; statusEl.style.color='var(--green)'; }
+        } else {
+          if(statusEl){ statusEl.textContent='✗ Формат не розпізнано'; statusEl.style.color='var(--red)'; }
+        }
+      };
+      reader.readAsText(file);
+    }
+    e.target.value='';
+  });
+});
+
+document.addEventListener('DOMContentLoaded', function(){
+  const inp = document.getElementById('stats-csv-upload');
+  if(inp) inp.addEventListener('change', function(e){
+    const nameEl = document.getElementById('stats-file-name');
+    if(nameEl && e.target.files[0]) nameEl.textContent = e.target.files[0].name;
+    loadStatsFile(e.target);
+    e.target.value = '';
+  });
+});
+
+function parseStatsCSV(text){
+  const lines = text.split('\n').filter(l=>l.trim());
+  if(lines.length < 2) return [];
+  const headers = lines[0].split(',').map(h=>h.trim().replace(/"/g,'').toLowerCase());
+  const iDate  = headers.findIndex(h=>h.includes('date'));
+  const iModel = headers.findIndex(h=>h.includes('model'));
+  const iGrade = headers.findIndex(h=>h.includes('grade'));
+  const iPrice = headers.findIndex(h=>h.includes('price'));
+  if(iDate<0||iModel<0||iPrice<0) return [];
+
+  function normalizeDate(raw){
+    if(!raw) return '';
+    raw = raw.trim().replace(/"/g,'');
+
+    // Excel serial number (5 digits)
+    if(/^\d{5}$/.test(raw)){
+      const d = new Date(1899,11,30);
+      d.setDate(d.getDate()+parseInt(raw));
+      return d.toISOString().slice(0,10);
+    }
+    // ISO: 2026-01-13
+    if(/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+
+    // DD.MM.YYYY or DD/MM/YYYY
+    const dmy = raw.match(/^(\d{1,2})[.\/](\d{1,2})[.\/](\d{4})$/);
+    if(dmy){
+      const [,d,m,y] = dmy;
+      return y+'-'+m.padStart(2,'0')+'-'+d.padStart(2,'0');
+    }
+    // MM/DD/YYYY (US format)
+    const mdy = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if(mdy){
+      const [,m,d,y] = mdy;
+      return y+'-'+m.padStart(2,'0')+'-'+d.padStart(2,'0');
+    }
+    // MM/DD/YY
+    const mdyShort = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/);
+    if(mdyShort){
+      const [,m,d,y] = mdyShort;
+      return '20'+y+'-'+m.padStart(2,'0')+'-'+d.padStart(2,'0');
+    }
+    // January 13, 2026 or Jan 13, 2026
+    const months = {january:1,february:2,march:3,april:4,may:5,june:6,
+      july:7,august:8,september:9,october:10,november:11,december:12,
+      jan:1,feb:2,mar:3,apr:4,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
+    const mname = raw.match(/^([a-z]+)\s+(\d{1,2}),?\s+(\d{4})$/i);
+    if(mname){
+      const m = months[mname[1].toLowerCase()];
+      if(m) return mname[3]+'-'+String(m).padStart(2,'0')+'-'+mname[2].padStart(2,'0');
+    }
+    // Try Date.parse as last resort
+    const parsed = Date.parse(raw);
+    if(!isNaN(parsed)) return new Date(parsed).toISOString().slice(0,10);
+    return raw;
+  }
+
+  const rows = [];
+  lines.slice(1).forEach(line=>{
+    const cols = line.split(',').map(c=>c.trim().replace(/"/g,''));
+    const dateRaw  = cols[iDate]||'';
+    const model    = cols[iModel]||'';
+    const grade    = (cols[iGrade]||'A+').replace('(T)','').trim();
+    const priceRaw = parseFloat((cols[iPrice]||'').replace(/[^\d.]/g,''));
+    if(!dateRaw||!model||isNaN(priceRaw)||priceRaw<=0) return;
+    const date = normalizeDate(dateRaw);
+    if(!date||date.length!==10) return; // skip unparseable dates
+    if(model.startsWith('iPhone')){
+      rows.push({date, model, grade, price:priceRaw});
+    }
+  });
+  return rows;
+}
+
+// Chart.js color palette
+const CHART_COLORS = [
+  '#d4ff4e','#4effe0','#ff5252','#ffb84e','#4eff9a',
+  '#a78bfa','#f472b6','#38bdf8','#fb923c','#86efac',
+  '#fde68a','#c084fc','#67e8f9','#fca5a5','#6ee7b7'
+];
+
+let chartInstances = {};
+let curStatView = 'trend';
+
+function destroyChart(id){
+  if(chartInstances[id]){ chartInstances[id].destroy(); delete chartInstances[id]; }
+}
+
+function setStatView(view, btn){
+  curStatView = view;
+  document.querySelectorAll('.stats-view').forEach(el=>el.style.display='none');
+  document.querySelectorAll('[id^="view-"]').forEach(b=>b.classList.remove('on'));
+  document.getElementById('stats-'+view).style.display='';
+  btn.classList.add('on');
+  renderStatView(view);
+}
+
+function renderStatView(view){
+  if(view==='trend')        renderTrend();
+  else if(view==='compare') renderCompare();
+  else if(view==='grade')   renderGradeCompare();
+  else if(view==='heatmap') renderHeatmap();
+  else if(view==='matrix')  renderMatrix();
+  else if(view==='movers')  renderMovers();
+  else if(view==='table')   renderStatsTable();
+}
+
+// ── Helpers ────────────────────────────────────
+function getModels(){ return [...new Set(STATS_DATA.map(d=>d.model))].sort(); }
+function getDates(){  return [...new Set(STATS_DATA.map(d=>d.date))].sort(); }
+function getFamilies(){
+  const fs = new Set();
+  getModels().forEach(m=>{ const p=m.rsplit? m : m; const parts=m.split(' '); 
+    const last=parts[parts.length-1];
+    if(/\d/.test(last)) fs.add(parts.slice(0,-1).join(' '));
+    else fs.add(m);
+  });
+  return [...fs].sort();
+}
+function getModelFamilies(){
+  const fs = new Set();
+  getModels().forEach(m=>{
+    const parts = m.split(' ');
+    const last = parts[parts.length-1];
+    if(/\d/.test(last)) fs.add(parts.slice(0,-1).join(' '));
+    else fs.add(m);
+  });
+  return [...fs].sort();
+}
+
+function dataFor(model, grade){
+  return STATS_DATA.filter(d=>d.model===model&&d.grade===grade).sort((a,b)=>a.date.localeCompare(b.date));
+}
+
+function getChartDefaults(){
+  const isDark = document.documentElement.getAttribute('data-theme')==='dark';
+  return {
+    gridColor: isDark ? 'rgba(255,255,255,.07)' : 'rgba(0,0,0,.07)',
+    textColor: isDark ? '#9a9a9a' : '#6b6b5a',
+    bgColor:   isDark ? '#161618' : '#ffffff',
+  };
+}
+
+// ── TREND VIEW ─────────────────────────────────
+function initTrendSelects(){
+  const sel = document.getElementById('trend-model');
+  if(!sel || sel.options.length > 1) return;
+  getModels().forEach(m=>{ const o=document.createElement('option'); o.value=m; o.textContent=m; sel.appendChild(o); });
+  sel.value = 'iPhone 16 Pro Max 256Gb';
+}
+
+function renderTrend(){
+  initTrendSelects();
+  const model = document.getElementById('trend-model').value;
+  const showAP = document.getElementById('trend-ap').checked;
+  const showBP = document.getElementById('trend-bp').checked;
+  const dates = getDates();
+  destroyChart('trend-chart');
+
+  const datasets = [];
+  if(showAP){
+    const d = dataFor(model,'A+');
+    if(d.length){
+      datasets.push({
+        label:'A+',
+        data: dates.map(date=>{ const r=d.find(x=>x.date===date); return r?r.price:null; }),
+        borderColor:'#d4ff4e', backgroundColor:'rgba(212,255,78,.12)',
+        pointBackgroundColor:'#d4ff4e', pointRadius:5, pointHoverRadius:7,
+        tension:0.3, fill:true, spanGaps:true,
+      });
+    }
+  }
+  if(showBP){
+    const d = dataFor(model,'B+');
+    if(d.length){
+      datasets.push({
+        label:'B+',
+        data: dates.map(date=>{ const r=d.find(x=>x.date===date); return r?r.price:null; }),
+        borderColor:'#ffb84e', backgroundColor:'rgba(255,184,78,.10)',
+        pointBackgroundColor:'#ffb84e', pointRadius:5, pointHoverRadius:7,
+        tension:0.3, fill:true, spanGaps:true,
+      });
+    }
+  }
+
+  const th = getChartDefaults();
+  const ctx = document.getElementById('trend-chart').getContext('2d');
+  chartInstances['trend-chart'] = new Chart(ctx,{
+    type:'line',
+    data:{ labels: dates.map(d=>d.slice(5)), datasets },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{ intersect:false, mode:'index' },
+      plugins:{
+        legend:{ labels:{ color:th.textColor, font:{family:'JetBrains Mono',size:11} }},
+        tooltip:{ backgroundColor:'#1c1c1f', titleColor:'#f2f2f2', bodyColor:'#9a9a9a',
+          callbacks:{ label: ctx=>`${ctx.dataset.label}: $${ctx.parsed.y?.toFixed(2)||'—'}` }
+        }
+      },
+      scales:{
+        x:{ grid:{color:th.gridColor}, ticks:{color:th.textColor, font:{family:'JetBrains Mono',size:10}} },
+        y:{ grid:{color:th.gridColor}, ticks:{color:th.textColor, font:{family:'JetBrains Mono',size:10}, callback:v=>'$'+v} }
+      }
+    }
+  });
+
+  // Stats summary
+  const statsEl = document.getElementById('trend-stats');
+  let html = '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">';
+  ['A+','B+'].filter((_,i)=>[showAP,showBP][i]).forEach(grade=>{
+    const d = dataFor(model,grade);
+    if(!d.length) return;
+    const prices = d.map(x=>x.price);
+    const first=prices[0], last=prices[prices.length-1];
+    const chg = ((last-first)/first*100).toFixed(2);
+    const avg = (prices.reduce((s,p)=>s+p,0)/prices.length).toFixed(2);
+    const min = Math.min(...prices).toFixed(2), max = Math.max(...prices).toFixed(2);
+    const color = grade==='A+'?'#d4ff4e':'#ffb84e';
+    html += `
+      <div style="background:var(--s2);border-radius:8px;padding:12px 14px;border:1px solid var(--b1)">
+        <div style="font-size:10px;font-weight:600;color:${color};margin-bottom:8px;letter-spacing:.08em">${grade}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-family:'JetBrains Mono',monospace;font-size:11px">
+          <div><div style="color:var(--t3);font-size:9px">ПЕРША</div><div>$${first.toFixed(2)}</div></div>
+          <div><div style="color:var(--t3);font-size:9px">ОСТАННЯ</div><div>$${last.toFixed(2)}</div></div>
+          <div><div style="color:var(--t3);font-size:9px">AVG</div><div>$${avg}</div></div>
+          <div><div style="color:var(--t3);font-size:9px">ЗМІНА</div>
+            <div style="color:${parseFloat(chg)>=0?'var(--green)':'var(--red)'}">${chg}%</div></div>
+        </div>
+      </div>`;
+  });
+  html += '</div>';
+  statsEl.innerHTML = html;
+}
+
+// ── COMPARE VIEW ───────────────────────────────
+function initCompareSelects(){
+  const dateSel = document.getElementById('cmp-date');
+  if(dateSel.options.length < 2){
+    getDates().forEach(d=>{ const o=document.createElement('option'); o.value=d; o.textContent=d; dateSel.appendChild(o); });
+    dateSel.value = '';
+  }
+  const famSel = document.getElementById('cmp-family');
+  if(famSel.options.length < 2){
+    getModelFamilies().forEach(f=>{ const o=document.createElement('option'); o.value=f; o.textContent=f; famSel.appendChild(o); });
+  }
+}
+
+function renderCompare(){
+  initCompareSelects();
+  const grade     = document.getElementById('cmp-grade').value;
+  const dateVal   = document.getElementById('cmp-date').value;
+  const family    = document.getElementById('cmp-family').value;
+  const dates     = getDates();
+  const targetDate = dateVal || dates[dates.length-1];
+
+  let models = getModels().filter(m=>{
+    if(family && !m.startsWith(family)) return false;
+    return STATS_DATA.some(d=>d.model===m&&d.grade===grade&&d.date===targetDate);
+  });
+  models = models.filter(m=>STATS_DATA.some(d=>d.model===m&&d.grade===grade&&d.date===targetDate));
+  const prices = models.map(m=>{
+    const row = STATS_DATA.find(d=>d.model===m&&d.grade===grade&&d.date===targetDate);
+    return row ? row.price : null;
+  });
+
+  destroyChart('compare-chart');
+  const th = getChartDefaults();
+  const isDark = document.documentElement.getAttribute('data-theme')==='dark';
+  const ctx = document.getElementById('compare-chart').getContext('2d');
+
+  chartInstances['compare-chart'] = new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels: models.map(m=>m.replace('iPhone ','')),
+      datasets:[{
+        label:`${grade} — ${targetDate}`,
+        data: prices,
+        backgroundColor: models.map((_,i)=>CHART_COLORS[i%CHART_COLORS.length]+'99'),
+        borderColor: models.map((_,i)=>CHART_COLORS[i%CHART_COLORS.length]),
+        borderWidth:1, borderRadius:4,
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false, indexAxis:'y',
+      plugins:{
+        legend:{display:false},
+        datalabels: false,
+        tooltip:{
+          backgroundColor:isDark?'#1c1c1f':'#fff',
+          titleColor:isDark?'#f2f2f2':'#1a1a16',
+          bodyColor:isDark?'#9a9a9a':'#6b6b5a',
+          padding:10,
+          callbacks:{
+            label: ctx=>`  $${ctx.parsed.x?.toFixed(2)}`
+          }
+        }
+      },
+      scales:{
+        x:{
+          grid:{color:th.gridColor},
+          ticks:{color:th.textColor, font:{family:'JetBrains Mono',size:10}, callback:v=>'$'+v}
+        },
+        y:{
+          grid:{color:th.gridColor},
+          ticks:{color:th.textColor, font:{family:'JetBrains Mono',size:10}}
+        }
+      },
+      // show price labels on bars
+      animation:{
+        onComplete: function(){
+          const chart = this;
+          const ctx2 = chart.ctx;
+          ctx2.save();
+          ctx2.font = "500 10px 'JetBrains Mono', monospace";
+          ctx2.fillStyle = isDark?'rgba(242,242,242,.75)':'rgba(26,26,22,.65)';
+          ctx2.textAlign = 'left';
+          ctx2.textBaseline = 'middle';
+          chart.data.datasets.forEach((dataset,i)=>{
+            const meta = chart.getDatasetMeta(i);
+            meta.data.forEach((bar,j)=>{
+              const v = dataset.data[j];
+              if(v==null) return;
+              const x = bar.x + 4;
+              const y = bar.y;
+              ctx2.fillText('$'+v.toFixed(2), x, y);
+            });
+          });
+          ctx2.restore();
+        }
+      }
+    }
+  });
+}
+
+
+// ── GRADE COMPARE VIEW ─────────────────────────
+function initGradeSelects(){
+  const sel = document.getElementById('grade-model');
+  if(!sel || sel.options.length > 1) return;
+  const modelsWithBoth = getModels().filter(m=>
+    STATS_DATA.some(d=>d.model===m&&d.grade==='A+') &&
+    STATS_DATA.some(d=>d.model===m&&d.grade==='B+')
+  );
+  modelsWithBoth.forEach(m=>{ const o=document.createElement('option'); o.value=m; o.textContent=m; sel.appendChild(o); });
+  if(modelsWithBoth.length) sel.value = modelsWithBoth[0];
+}
+
+function renderGradeCompare(){
+  initGradeSelects();
+  const model = document.getElementById('grade-model').value;
+  const dates = getDates();
+  destroyChart('grade-chart');
+
+  const apData = dataFor(model,'A+');
+  const bpData = dataFor(model,'B+');
+  const diffData = dates.map(date=>{
+    const ap = apData.find(x=>x.date===date);
+    const bp = bpData.find(x=>x.date===date);
+    return (ap&&bp) ? parseFloat((((ap.price-bp.price)/bp.price)*100).toFixed(2)) : null;
+  });
+
+  const th = getChartDefaults();
+  const isDark = document.documentElement.getAttribute('data-theme')==='dark';
+  const ctx = document.getElementById('grade-chart').getContext('2d');
+  chartInstances['grade-chart'] = new Chart(ctx,{
+    type:'line',
+    data:{
+      labels: dates.map(d=>d.slice(5)),
+      datasets:[
+        { label:'A+', data: dates.map(date=>{ const r=apData.find(x=>x.date===date); return r?r.price:null; }),
+          borderColor:'#d4ff4e', backgroundColor:'rgba(212,255,78,.08)', tension:0.3, fill:false, spanGaps:true, pointRadius:4 },
+        { label:'B+', data: dates.map(date=>{ const r=bpData.find(x=>x.date===date); return r?r.price:null; }),
+          borderColor:'#ffb84e', backgroundColor:'rgba(255,184,78,.08)', tension:0.3, fill:false, spanGaps:true, pointRadius:4 },
+        { label:'A+/B+ різниця %', data: diffData, borderColor:'#4effe0', borderDash:[4,3],
+          tension:0.3, spanGaps:true, pointRadius:3, yAxisID:'y2', fill:false }
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{intersect:false,mode:'index'},
+      plugins:{
+        legend:{labels:{color:th.textColor,font:{family:'JetBrains Mono',size:11}}},
+        tooltip:{ backgroundColor:isDark?'#1c1c1f':'#fff', titleColor:isDark?'#f2f2f2':'#1a1a16', bodyColor:isDark?'#9a9a9a':'#6b6b5a' }
+      },
+      scales:{
+        x:{ grid:{color:th.gridColor}, ticks:{color:th.textColor,font:{family:'JetBrains Mono',size:10}} },
+        y:{ grid:{color:th.gridColor}, ticks:{color:th.textColor,font:{family:'JetBrains Mono',size:10},callback:v=>'$'+v} },
+        y2:{ position:'right', grid:{display:false}, ticks:{color:'#4effe0',font:{family:'JetBrains Mono',size:10},callback:v=>v+'%'} }
+      }
+    }
+  });
+
+  // Diff table
+  const rows = dates.map(date=>{
+    const ap=apData.find(x=>x.date===date), bp=bpData.find(x=>x.date===date);
+    if(!ap||!bp) return null;
+    const diff = ap.price-bp.price;
+    const pct = (diff/bp.price*100).toFixed(1);
+    return `<tr><td class="mono" style="color:var(--t3)">${date}</td>
+      <td class="mono">$${ap.price.toFixed(2)}</td>
+      <td class="mono">$${bp.price.toFixed(2)}</td>
+      <td class="mono" style="color:var(--green)">+$${diff.toFixed(2)}</td>
+      <td class="mono" style="color:var(--acc2)">+${pct}%</td></tr>`;
+  }).filter(Boolean).join('');
+  document.getElementById('grade-diff-table').innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr>
+        <th style="font-size:9px;color:var(--t3);padding:5px 8px;border-bottom:1px solid var(--b1);text-align:left">Дата</th>
+        <th style="font-size:9px;color:var(--t3);padding:5px 8px;border-bottom:1px solid var(--b1);text-align:left">A+</th>
+        <th style="font-size:9px;color:var(--t3);padding:5px 8px;border-bottom:1px solid var(--b1);text-align:left">B+</th>
+        <th style="font-size:9px;color:var(--t3);padding:5px 8px;border-bottom:1px solid var(--b1);text-align:left">Різниця $</th>
+        <th style="font-size:9px;color:var(--t3);padding:5px 8px;border-bottom:1px solid var(--b1);text-align:left">Різниця %</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+// ── HEATMAP VIEW ──────────────────────────────
+function initHeatmapSelects(){
+  const dates = getDates();
+  // date selectors
+  ['hm-date-from','hm-date-to','mv-date-from','mv-date-to'].forEach(id=>{
+    const sel=document.getElementById(id); if(!sel||sel.options.length>0) return;
+    dates.forEach(d=>{ const o=document.createElement('option'); o.value=d; o.textContent=d; sel.appendChild(o); });
+  });
+  const hmFrom=document.getElementById('hm-date-from'), hmTo=document.getElementById('hm-date-to');
+  if(hmFrom&&!hmFrom.value){ hmFrom.value=dates[0]; }
+  if(hmTo&&!hmTo.value){ hmTo.value=dates[dates.length-1]; }
+  const mvFrom=document.getElementById('mv-date-from'), mvTo=document.getElementById('mv-date-to');
+  if(mvFrom&&!mvFrom.value){ mvFrom.value=dates[0]; }
+  if(mvTo&&!mvTo.value){ mvTo.value=dates[dates.length-1]; }
+  // family selects
+  ['hm-family','mx-family'].forEach(id=>{
+    const sel=document.getElementById(id); if(!sel||sel.options.length>1) return;
+    getModelFamilies().forEach(f=>{ const o=document.createElement('option'); o.value=f; o.textContent=f; sel.appendChild(o); });
+  });
+}
+
+function renderHeatmap(){
+  initHeatmapSelects();
+  const grade  = document.getElementById('hm-grade').value;
+  const metric = document.getElementById('hm-metric').value;
+  const family = document.getElementById('hm-family').value;
+  const size   = document.getElementById('hm-size').value;
+  const dates  = getDates();
+  const isDark = document.documentElement.getAttribute('data-theme')==='dark';
+
+  // Show/hide date pickers
+  const customMode = metric==='change_custom';
+  document.getElementById('hm-date-from-wrap').style.display = customMode?'':'none';
+  document.getElementById('hm-date-to-wrap').style.display   = customMode?'':'none';
+
+  const lastDate = dates[dates.length-1];
+  const prevDate = dates[dates.length-2];
+  const firstDate= dates[0];
+  const fromDate = customMode ? document.getElementById('hm-date-from').value : null;
+  const toDate   = customMode ? document.getElementById('hm-date-to').value   : null;
+
+  const grades = grade==='both' ? ['A+','B+'] : [grade];
+
+  let models = getModels().filter(m=>{
+    if(family && !m.startsWith(family)) return false;
+    return grades.some(g=>STATS_DATA.some(d=>d.model===m&&d.grade===g&&d.date===lastDate));
+  });
+
+  function getVal(model, gr){
+    const d = dataFor(model, gr);
+    if(!d.length) return null;
+    if(metric==='price'){
+      const last=d.find(x=>x.date===lastDate); return last?last.price:null;
+    }
+    if(metric==='change_week'){
+      const last=d.find(x=>x.date===lastDate), prev=d.find(x=>x.date===prevDate);
+      if(!last||!prev) return null;
+      return parseFloat(((last.price-prev.price)/prev.price*100).toFixed(2));
+    }
+    if(metric==='change_custom'){
+      const from=d.find(x=>x.date===fromDate), to=d.find(x=>x.date===toDate);
+      if(!from||!to) return null;
+      return parseFloat(((to.price-from.price)/from.price*100).toFixed(2));
+    }
+    if(metric==='change_all'){
+      const sorted=d.sort((a,b)=>a.date.localeCompare(b.date));
+      const first=sorted[0], last=sorted[sorted.length-1];
+      return parseFloat(((last.price-first.price)/first.price*100).toFixed(2));
+    }
+    if(metric==='volatility'){
+      const prices=d.map(x=>x.price); if(prices.length<2) return null;
+      const avg=prices.reduce((s,p)=>s+p,0)/prices.length;
+      return parseFloat((Math.sqrt(prices.reduce((s,p)=>s+(p-avg)**2,0)/prices.length)/avg*100).toFixed(2));
+    }
+    return null;
+  }
+
+  // Build entries
+  const entries = [];
+  models.forEach(model=>{
+    grades.forEach(gr=>{
+      const val = getVal(model, gr);
+      if(val!==null) entries.push({model, grade:gr, val});
+    });
+  });
+
+  if(!entries.length){ document.getElementById('heatmap-grid').innerHTML='<div style="color:var(--t3);padding:20px">Немає даних для обраних параметрів</div>'; return; }
+
+  const vals = entries.map(e=>e.val);
+  const minV=Math.min(...vals), maxV=Math.max(...vals);
+  const isChange = metric.startsWith('change');
+
+  function cellColor(v){
+    if(isChange){
+      if(v<0){ const t=Math.min(Math.abs(v)/15,1); return isDark?`rgba(255,82,82,${0.15+t*0.65})`:`rgba(192,41,30,${0.1+t*0.55})`; }
+      const t=Math.min(v/15,1); return isDark?`rgba(78,255,154,${0.12+t*0.55})`:`rgba(26,122,74,${0.1+t*0.5})`;
+    }
+    const t = maxV===minV?0.5:(v-minV)/(maxV-minV);
+    return isDark?`rgba(78,${Math.round(160+95*t)},${Math.round(200-100*t)},${0.15+t*0.5})`
+                 :`rgba(26,${Math.round(80+100*t)},${Math.round(160-80*t)},${0.1+t*0.45})`;
+  }
+  function textClr(v){ return isChange?(v<0?'var(--red)':'var(--green)'):'var(--t1)'; }
+
+  const sizeMap={compact:'140px',normal:'175px',large:'220px'};
+  const minW=sizeMap[size]||'175px';
+  const fontSize={compact:'10px',normal:'11px',large:'13px'}[size]||'11px';
+  const valSize={compact:'12px',normal:'15px',large:'18px'}[size]||'15px';
+
+  // Compute label prefix to show if grade = both
+  const showGradeBadge = grade==='both';
+
+  let html=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(${minW},1fr));gap:5px;padding:2px">`;
+  entries
+    .sort((a,b)=>{
+      const famA=a.model.split(' ').slice(0,-1).join(' '), famB=b.model.split(' ').slice(0,-1).join(' ');
+      return famA.localeCompare(famB)||a.model.localeCompare(b.model)||(a.grade==='A+'?-1:1);
+    })
+    .forEach(({model,grade:gr,val})=>{
+      const badge = showGradeBadge
+        ? `<span style="font-size:9px;padding:1px 5px;border-radius:3px;background:${gr==='A+'?'rgba(212,255,78,.15)':'rgba(255,184,78,.15)'};color:${gr==='A+'?'var(--acc)':'var(--amber)'};margin-left:4px">${gr}</span>`
+        : '';
+      const label = isChange
+        ? (val>=0?'+':'')+val.toFixed(1)+'%'
+        : (metric==='price'?'$'+val.toFixed(0):val.toFixed(1)+'%');
+      const trend = isChange&&val!==0 ? (val>0?' ↑':' ↓') : '';
+      html+=`<div
+        style="background:${cellColor(val)};border:1px solid var(--b1);border-radius:6px;padding:9px 10px;cursor:pointer;transition:transform .1s"
+        onmouseenter="this.style.transform='scale(1.02)'" onmouseleave="this.style.transform=''"
+        onclick="document.getElementById('trend-model').value='${model}';setStatView('trend',document.getElementById('view-trend'))">
+        <div style="font-size:${fontSize};color:var(--t2);margin-bottom:3px;line-height:1.3;display:flex;align-items:center;flex-wrap:wrap">
+          ${model.replace('iPhone ','')}${badge}
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:${valSize};font-weight:600;color:${textClr(val)}">${label}${trend}</div>
+      </div>`;
+    });
+  html+='</div>';
+  document.getElementById('heatmap-grid').innerHTML=html;
+
+  // Legend
+  const metricLabels={'price':'Ціна $','change_week':'Зміна % тиждень','change_custom':'Зміна % між датами','change_all':'Зміна % весь період','volatility':'Волатильність %'};
+  const dateLabel = metric==='change_week'?`${prevDate} → ${lastDate}`:metric==='change_custom'?`${fromDate} → ${toDate}`:metric==='change_all'?`${firstDate} → ${lastDate}`:'';
+  document.getElementById('hm-legend').innerHTML=`
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;font-size:11px;color:var(--t2)">
+      <span><strong style="color:var(--t1)">${metricLabels[metric]}</strong>${dateLabel?' · '+dateLabel:''}</span>
+      <span>${entries.length} записів</span>
+      ${isChange?`<span style="color:var(--green)">↑ зростання</span><span style="color:var(--red)">↓ падіння</span>`:
+        `<span>Min: ${metric==='price'?'$'+minV.toFixed(0):minV.toFixed(1)+'%'}</span><span>Max: ${metric==='price'?'$'+maxV.toFixed(0):maxV.toFixed(1)+'%'}</span>`}
+      <span style="color:var(--t3)">Клік на клітинку → динаміка</span>
+    </div>`;
+}
+
+// ── MATRIX VIEW ─────────────────────────────────
+function renderMatrix(){
+  initHeatmapSelects();
+  const grade   = document.getElementById('mx-grade').value;
+  const family  = document.getElementById('mx-family').value;
+  const display = document.getElementById('mx-display')?.value || 'pct';
+  const compare = document.getElementById('mx-compare')?.value || 'prev';
+  const dates   = getDates();
+  const isDark  = document.documentElement.getAttribute('data-theme')==='dark';
+
+  let models = getModels().filter(m=>{
+    if(family && !m.startsWith(family)) return false;
+    return STATS_DATA.some(d=>d.model===m&&d.grade===grade);
+  });
+
+  const rows = models.map(model=>{
+    const d = dataFor(model, grade);
+    const firstEntry = d.length ? d[0] : null;
+    const cells = dates.map((date,i)=>{
+      const curr = d.find(x=>x.date===date);
+      if(!curr) return {pct:null, abs:null, price:null};
+      if(i===0) return {pct:0, abs:0, price:curr.price};
+
+      let baseEntry = compare==='prev'
+        ? d.find(x=>x.date===dates[i-1])
+        : firstEntry;
+      if(!baseEntry) return {pct:null, abs:null, price:curr.price};
+
+      const absDiff  = parseFloat((curr.price - baseEntry.price).toFixed(2));
+      const pctDiff  = parseFloat(((curr.price - baseEntry.price)/baseEntry.price*100).toFixed(1));
+      return {pct:pctDiff, abs:absDiff, price:curr.price};
+    });
+    const hasAny = cells.some(c=>c.price!==null);
+    return hasAny ? {model, cells} : null;
+  }).filter(Boolean);
+
+  if(!rows.length){ document.getElementById('matrix-grid').innerHTML='<div style="color:var(--t3);padding:20px">Немає даних</div>'; return; }
+
+  // Color scale — based on display mode
+  function getChangeVal(c){ return display==='abs' ? c.abs : c.pct; }
+  const maxAbs = Math.max(...rows.flatMap(r=>r.cells.map(c=>Math.abs(getChangeVal(c)||0))));
+
+  function cellBg(c, isFirst){
+    if(isFirst && display!=='price') return isDark?'rgba(255,255,255,.04)':'rgba(0,0,0,.04)';
+    if(display==='price'){
+      if(!c.price) return isDark?'rgba(255,255,255,.02)':'rgba(0,0,0,.02)';
+      // neutral — no color coding for absolute price
+      return isDark?'rgba(255,255,255,.04)':'rgba(0,0,0,.03)';
+    }
+    const v = getChangeVal(c);
+    if(v===null) return isDark?'rgba(255,255,255,.02)':'rgba(0,0,0,.02)';
+    if(v===0) return isDark?'rgba(255,255,255,.05)':'rgba(0,0,0,.04)';
+    const t = maxAbs>0 ? Math.min(Math.abs(v)/maxAbs, 1) : 0.5;
+    if(v<0) return isDark?`rgba(255,82,82,${0.08+t*0.62})`:`rgba(192,41,30,${0.07+t*0.52})`;
+    return isDark?`rgba(78,255,154,${0.08+t*0.57})`:`rgba(26,122,74,${0.07+t*0.47})`;
+  }
+
+  function cellText(c, i){
+    if(display==='price'){
+      return c.price ? '$'+c.price.toFixed(0) : '—';
+    }
+    if(i===0 && compare==='prev') return c.price ? '$'+c.price.toFixed(0) : '—';
+    const v = getChangeVal(c);
+    if(v===null) return '—';
+    if(v===0) return i===0 ? (c.price?'$'+c.price.toFixed(0):'—') : '·';
+    if(display==='abs') return (v>0?'+':'')+v.toFixed(1);
+    return (v>0?'+':'')+v.toFixed(1)+'%';
+  }
+
+  function txtClr(c, i){
+    if(display==='price') return 'var(--t1)';
+    if(i===0 && compare==='prev') return 'var(--t2)';
+    const v = getChangeVal(c);
+    if(v===null||v===0) return 'var(--t3)';
+    return v<0?'var(--red)':'var(--green)';
+  }
+
+  function tooltip(c, model, date){
+    const parts = [`${model} · ${date}`];
+    if(c.price) parts.push(`Ціна: $${c.price.toFixed(2)}`);
+    if(c.pct!==null && c.pct!==0) parts.push(`Зміна: ${c.pct>0?'+':''}${c.pct.toFixed(1)}% / ${c.abs>0?'+':''}$${c.abs.toFixed(2)}`);
+    return parts.join(' | ');
+  }
+
+  const shortDates = dates.map(d=>d.slice(5));
+  const compareLabel = compare==='prev' ? '← тижд.' : '← від першої';
+  const displayLabel = display==='pct'?'%':display==='abs'?'$':'ціна $';
+
+  let html = `<div style="margin-bottom:8px;font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--t3)">
+    Режим: <span style="color:var(--t1)">${displayLabel}</span> · Порівняння: <span style="color:var(--t1)">${compareLabel}</span>
+    ${display!=='price'?' · Колір = інтенсивність зміни':''}
+  </div>`;
+
+  html += `<div style="overflow-x:auto"><table style="border-collapse:collapse;font-size:11px;font-family:'JetBrains Mono',monospace;min-width:500px">
+    <thead><tr>
+      <th style="text-align:left;padding:5px 10px;color:var(--t3);font-size:9px;font-weight:600;border-bottom:1px solid var(--b1);white-space:nowrap;position:sticky;left:0;background:var(--s1);z-index:1">Модель</th>
+      ${shortDates.map((d,i)=>`<th style="padding:4px 7px;color:var(--t3);font-size:9px;font-weight:600;border-bottom:1px solid var(--b1);text-align:center;white-space:nowrap">${d}</th>`).join('')}
+    </tr></thead>
+    <tbody>`;
+
+  rows.forEach(({model, cells})=>{
+    html+=`<tr onmouseenter="this.style.background='rgba(255,255,255,.02)'" onmouseleave="this.style.background=''">
+      <td style="padding:4px 10px;border-bottom:1px solid var(--b1);white-space:nowrap;color:var(--t2);cursor:pointer;position:sticky;left:0;background:var(--s1);z-index:1"
+        onclick="document.getElementById('trend-model').value='${model}';setStatView('trend',document.getElementById('view-trend'))">
+        ${model.replace('iPhone ','')}
+      </td>
+      ${cells.map((c,i)=>`<td
+        style="padding:3px 7px;border-bottom:1px solid var(--b1);text-align:center;background:${cellBg(c,i===0)};color:${txtClr(c,i)};font-size:11px"
+        title="${tooltip(c,model,dates[i])}">${cellText(c,i)}</td>`).join('')}
+    </tr>`;
+  });
+
+  html+='</tbody></table></div>';
+  document.getElementById('matrix-grid').innerHTML=html;
+}
+
+
+// ── MOVERS VIEW ────────────────────────────────
+function renderMovers(){
+  initHeatmapSelects();
+  const period = document.getElementById('mv-period').value;
+  const gradeF = document.getElementById('mv-grade').value;
+  const topN   = document.getElementById('mv-top').value;
+  const isDark = document.documentElement.getAttribute('data-theme')==='dark';
+  const dates  = getDates();
+
+  document.getElementById('mv-date-from-wrap').style.display = period==='custom'?'':'none';
+  document.getElementById('mv-date-to-wrap').style.display   = period==='custom'?'':'none';
+
+  let fromDate, toDate;
+  if(period==='week'){ fromDate=dates[dates.length-2]; toDate=dates[dates.length-1]; }
+  else if(period==='month'){ const last=dates[dates.length-1]; fromDate=dates.filter(d=>d<=last).slice(-5)[0]||dates[0]; toDate=last; }
+  else if(period==='all'){ fromDate=dates[0]; toDate=dates[dates.length-1]; }
+  else{ fromDate=document.getElementById('mv-date-from').value; toDate=document.getElementById('mv-date-to').value; }
+
+  const grades = gradeF ? [gradeF] : ['A+','B+'];
+  const movers = [];
+  getModels().forEach(model=>{
+    grades.forEach(grade=>{
+      const d = dataFor(model, grade);
+      const from = d.find(x=>x.date===fromDate), to = d.find(x=>x.date===toDate);
+      if(!from||!to) return;
+      const chgPct = parseFloat(((to.price-from.price)/from.price*100).toFixed(2));
+      const chgAbs = parseFloat((to.price-from.price).toFixed(2));
+      movers.push({model, grade, fromPrice:from.price, toPrice:to.price, chgPct, chgAbs});
+    });
+  });
+
+  const gainers = [...movers].filter(m=>m.chgPct>0).sort((a,b)=>b.chgPct-a.chgPct);
+  const losers  = [...movers].filter(m=>m.chgPct<0).sort((a,b)=>a.chgPct-b.chgPct);
+  const limit = topN==='all' ? 9999 : parseInt(topN);
+
+  function moverCard(m, isGainer){
+    const color = isGainer?'var(--green)':'var(--red)';
+    const bg    = isGainer?(isDark?'rgba(78,255,154,.06)':'rgba(26,122,74,.06)'):(isDark?'rgba(255,82,82,.06)':'rgba(192,41,30,.06)');
+    const arrow = isGainer?'↑':'↓';
+    return `<div style="background:${bg};border:1px solid var(--b1);border-radius:6px;padding:9px 12px;cursor:pointer;display:flex;align-items:center;gap:10px;margin-bottom:5px"
+      onclick="document.getElementById('trend-model').value='${m.model}';setStatView('trend',document.getElementById('view-trend'))">
+      <div style="flex:1">
+        <div style="font-size:12px;color:var(--t1);margin-bottom:2px">${m.model}</div>
+        <div style="font-size:10px;color:var(--t2);font-family:'JetBrains Mono',monospace">
+          <span class="badge ${m.grade==='A+'?'b-ap':'b-bp'}" style="margin-right:6px">${m.grade}</span>
+          $${m.fromPrice.toFixed(2)} → $${m.toPrice.toFixed(2)}
+        </div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:600;color:${color}">${arrow} ${Math.abs(m.chgPct).toFixed(1)}%</div>
+        <div style="font-size:10px;color:var(--t2);font-family:'JetBrains Mono',monospace">${isGainer?'+':''}\$${m.chgAbs.toFixed(2)}</div>
+      </div>
+    </div>`;
+  }
+
+  const periodLabel = period==='week'?`${fromDate} → ${toDate}`:period==='month'?`~місяць (${fromDate} → ${toDate})`:period==='all'?`весь період (${fromDate} → ${toDate})`:`${fromDate} → ${toDate}`;
+
+  const gainHtml = gainers.slice(0,limit).map(m=>moverCard(m,true)).join('') || '<div style="color:var(--t3);font-size:12px">Немає зростань</div>';
+  const loseHtml = losers.slice(0,limit).map(m=>moverCard(m,false)).join('') || '<div style="color:var(--t3);font-size:12px">Немає падінь</div>';
+
+  document.getElementById('movers-grid').innerHTML = `
+    <div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <div style="font-size:12px;font-weight:600;color:var(--green)">↑ Зростання (${gainers.length})</div>
+        <div style="font-size:10px;color:var(--t3);font-family:'JetBrains Mono',monospace">${periodLabel}</div>
+      </div>
+      ${gainHtml}
+    </div>
+    <div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <div style="font-size:12px;font-weight:600;color:var(--red)">↓ Падіння (${losers.length})</div>
+      </div>
+      ${loseHtml}
+    </div>`;
+}
+
+// ── TABLE VIEW ─────────────────────────────────
+function renderStatsTable(){
+  const gradeF = document.getElementById('tbl-grade').value;
+  const search = (document.getElementById('tbl-search').value||'').toLowerCase();
+  const dates = getDates();
+  const firstDate = dates[0], lastDate = dates[dates.length-1];
+
+  document.getElementById('tbl-th-first').textContent = firstDate;
+  document.getElementById('tbl-th-last').textContent = lastDate;
+
+  const keys = [...new Set(STATS_DATA.map(d=>d.model+'||'+d.grade))].sort();
+  const rows = keys.map(key=>{
+    const [model,grade] = key.split('||');
+    if(gradeF && grade!==gradeF) return null;
+    if(search && !model.toLowerCase().includes(search)) return null;
+    const d = dataFor(model,grade);
+    if(!d.length) return null;
+    const prices = d.map(x=>x.price);
+    const first=d.find(x=>x.date===firstDate), last=d.find(x=>x.date===lastDate);
+    const avg=(prices.reduce((s,p)=>s+p,0)/prices.length).toFixed(2);
+    const min=Math.min(...prices).toFixed(2), max=Math.max(...prices).toFixed(2);
+    const chgAbs = first&&last ? (last.price-first.price).toFixed(2) : '—';
+    const chgPct = first&&last ? ((last.price-first.price)/first.price*100).toFixed(2) : '—';
+    const avgV = parseFloat(avg);
+    const volat = prices.length>1 ? (Math.sqrt(prices.reduce((s,p)=>s+(p-avgV)**2,0)/prices.length)/avgV*100).toFixed(1)+'%' : '—';
+    const chgColor = parseFloat(chgPct)>=0?'var(--green)':'var(--red)';
+    return `<tr>
+      <td style="font-size:12px">${model}</td>
+      <td><span class="badge ${grade==='A+'?'b-ap':'b-bp'}">${grade}</span></td>
+      <td class="mono">${first?'$'+first.price.toFixed(2):'—'}</td>
+      <td class="mono">${last?'$'+last.price.toFixed(2):'—'}</td>
+      <td class="mono" style="color:var(--t2)">$${min}</td>
+      <td class="mono" style="color:var(--t2)">$${max}</td>
+      <td class="mono">$${avg}</td>
+      <td class="mono" style="color:${chgColor}">${chgAbs!=='—'?(parseFloat(chgAbs)>=0?'+':'')+chgAbs:'—'}</td>
+      <td class="mono" style="color:${chgColor}">${chgPct!=='—'?(parseFloat(chgPct)>=0?'+':'')+chgPct+'%':'—'}</td>
+      <td class="mono" style="color:var(--t2)">${volat}</td>
+    </tr>`;
+  }).filter(Boolean);
+
+  document.getElementById('stats-tbody').innerHTML = rows.join('');
+}
+
+// ── INIT STATS ─────────────────────────────────
+let statsInitDone = false;
+function initStats(){
+  initTrendSelects();
+  initCompareSelects();
+  initGradeSelects();
+  initHeatmapSelects();
+  if(!statsInitDone){
+    statsInitDone = true;
+  }
+  renderTrend();
+}
+
+</script>
+</body>
+</html>
